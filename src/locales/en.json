@@ -1,0 +1,149 @@
+{
+  "app": {
+    "name": "Lumen",
+    "tagline": "your glow, your sound"
+  },
+  "nav": {
+    "home": "Home",
+    "library": "Library",
+    "playlists": "Playlists",
+    "favorites": "Favorites",
+    "settings": "Settings",
+    "about": "About"
+  },
+  "home": {
+    "title": "Home",
+    "subtitle": "Your music, glowing in one place.",
+    "continueListening": "Continue listening",
+    "yourFavorites": "Favorites",
+    "emptyTitle": "No music found",
+    "emptyBody": "Import your own songs to start building your library. Everything stays on this device.",
+    "importFirst": "Import your first song",
+    "viewAll": "View all"
+  },
+  "library": {
+    "title": "Library",
+    "subtitle": "Every song you've imported.",
+    "searchPlaceholder": "Search songs, artists, albums...",
+    "noResults": "No songs match your search.",
+    "songCount": "{{count}} songs",
+    "importMore": "Import songs"
+  },
+  "playlists": {
+    "title": "Playlists",
+    "subtitle": "Organize your library your way.",
+    "createPlaceholder": "New playlist name",
+    "createButton": "Create",
+    "empty": "No playlists yet.",
+    "emptySongs": "Drag songs here from your Library.",
+    "songsCount": "{{count}} songs",
+    "deleteConfirm": "Delete this playlist? This can't be undone.",
+    "addSongs": "Add songs",
+    "reorderHint": "Drag to reorder"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "subtitle": "Songs you've marked as favorites.",
+    "empty": "No favorites yet — tap the heart on any song to add it here."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Make Lumen yours.",
+    "theme": "Theme",
+    "themeHint": "Switch between dark, light, or match your system",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System",
+    "language": "Language",
+    "languageHint": "Interface & lyrics language",
+    "sleepTimer": "Sleep timer",
+    "sleepTimerHint": "Automatically pause playback after a set time",
+    "sleepTimerOff": "Off",
+    "sleepTimerActive": "Playback pauses in {{minutes}} min",
+    "sleepTimerCancel": "Cancel timer",
+    "dataTitle": "Your library data",
+    "dataHint": "Everything is stored on this device using IndexedDB",
+    "exportLibrary": "Export library",
+    "exportHint": "Save your songs, playlists, and settings as a backup file",
+    "importLibrary": "Import library",
+    "importHint": "Restore from a previously exported backup file",
+    "resetLibrary": "Erase all data",
+    "resetHint": "Permanently remove every song, playlist, and setting",
+    "resetConfirm": "This will permanently delete your entire library from this device. This can't be undone. Continue?",
+    "resetButton": "Erase everything"
+  },
+  "about": {
+    "title": "About",
+    "subtitle": "The story behind the glow.",
+    "description1": "Lumen is an offline-first, open-source music player template — a soft yellow glow against a dark canvas, tuned for iPhone and desktop alike.",
+    "description2": "It ships with zero bundled music. Import your own songs and Lumen reads their title, artist, album, and cover art automatically. Everything — your library, playlists, favorites, and settings — lives only on this device.",
+    "architectureTitle": "Architecture",
+    "architectureBody": "Vanilla HTML, CSS and JavaScript. No frameworks, no build step, no backend. IndexedDB for storage, the Web Audio API for the visualizer, and a Service Worker for offline use.",
+    "source": "Source code",
+    "license": "License"
+  },
+  "player": {
+    "nothingPlaying": "Nothing playing",
+    "pickASong": "Pick a song to start",
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next track",
+    "previous": "Previous track",
+    "shuffleOn": "Shuffle on",
+    "shuffleOff": "Shuffle off",
+    "favorite": "Add to favorites",
+    "unfavorite": "Remove from favorites",
+    "openLyrics": "Open lyrics"
+  },
+  "lyrics": {
+    "title": "Lyrics",
+    "noLyrics": "No lyrics added for this song yet.",
+    "addLyrics": "Add lyrics",
+    "editLyrics": "Edit lyrics",
+    "save": "Save",
+    "cancel": "Cancel",
+    "englishTab": "EN",
+    "persianTab": "FA",
+    "placeholder": "Paste lyrics here. Optional: start a line with [1:23] to sync it to that timestamp.",
+    "saved": "Lyrics saved"
+  },
+  "import": {
+    "button": "Import songs",
+    "chooseFiles": "Choose files",
+    "dragHint": "or drop audio files anywhere",
+    "processing": "Reading metadata…",
+    "addedOne": "Added \"{{title}}\"",
+    "addedMany": "Added {{count}} songs"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "close": "Close",
+    "save": "Save",
+    "search": "Search"
+  },
+  "lmp": {
+    "sectionTitle": "Music Package (.lmp)",
+    "sectionHint": "A portable package of songs, covers, lyrics, and playlists you can share or move between devices",
+    "exportAction": "Export Package (.lmp)",
+    "importAction": "Import Package (.lmp)",
+    "packageName": "Package name",
+    "author": "Author (optional)",
+    "authorPlaceholder": "Your name",
+    "exportTitle": "Export a Music Package",
+    "exportHint": "This bundles your songs, covers, lyrics, and playlists into a single .lmp file you can share or back up.",
+    "exportButton": "Export",
+    "stageReading": "Reading package…",
+    "stageValidating": "Validating package…",
+    "stageImporting": "Importing songs…",
+    "stageBuilding": "Building your package…",
+    "exportSuccessTitle": "Package exported",
+    "exportSuccessMessage": "{{songs}} songs and {{playlists}} playlists were packaged successfully.",
+    "importSuccessTitle": "Package imported",
+    "importSuccessMessage": "{{songs}} songs and {{playlists}} playlists were added to your library.",
+    "invalidTitle": "This package couldn't be imported",
+    "genericErrorTitle": "Something went wrong",
+    "moreItems": "…and {{count}} more"
+  }
+}
