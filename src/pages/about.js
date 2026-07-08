@@ -25,10 +25,10 @@ export function renderAbout(container) {
 
   const sourceLink = el("a", {
     class: "link",
-    href: "https://github.com/your-username/lumen-music-player",
+    href: "https://github.com/Behnooddev/PWA-LumenMusic",
     target: "_blank",
     rel: "noopener",
-  }, "github.com/your-username/lumen-music-player");
+  }, "github.com/Behnooddev/PWA-LumenMusic");
 
   container.appendChild(el("div", { class: "panel glass" }, [
     el("div", { class: "panel-title" }, t("about.source")),
