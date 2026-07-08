@@ -11,9 +11,12 @@ import { el, clearNode } from "../utils/dom.js";
 import { Songs } from "../database/db.js";
 import { createSongRow } from "../components/songRow.js";
 import { createEmptyState } from "../components/emptyState.js";
+import { createSortControl } from "../components/sortControl.js";
+import { sortSongs } from "../services/sortService.js";
 import { t, getLang } from "../services/i18nService.js";
 import { localizeNumber } from "../utils/format.js";
 import { playSong, getCurrentSong, toggleFavorite, on } from "../services/audioEngine.js";
+import { isIOS } from "../utils/platform.js";
 
 let searchTerm = "";
 let unsubscribeTrackChange = null;
@@ -45,6 +48,10 @@ export async function renderLibrary(container, { onImportRequested, onSongRemove
   toolbar.append(searchWrap, importBtn);
   container.appendChild(toolbar);
 
+  if (isIOS()) {
+    container.appendChild(el("p", { class: "ios-import-tip" }, t("import.iosTip")));
+  }
+
   if (!allSongs.length) {
     container.appendChild(
       createEmptyState({
@@ -55,9 +62,13 @@ export async function renderLibrary(container, { onImportRequested, onSongRemove
     return;
   }
 
-  container.appendChild(
+  const countRow = el("div", { class: "count-and-sort" });
+  countRow.appendChild(
     el("div", { class: "count-label" }, t("library.songCount", { count: localizeNumber(allSongs.length, lang) }))
   );
+  const sortControl = createSortControl("library", { fallback: "az", onChange: () => draw() });
+  countRow.appendChild(sortControl.element);
+  container.appendChild(countRow);
 
   const listWrap = el("div", { class: "song-list" });
   container.appendChild(listWrap);
@@ -65,9 +76,7 @@ export async function renderLibrary(container, { onImportRequested, onSongRemove
   function draw() {
     clearNode(listWrap);
     const term = searchTerm.trim().toLowerCase();
-    const filtered = allSongs
-      .slice()
-      .sort((a, b) => a.title.localeCompare(b.title))
+    const filtered = sortSongs(allSongs, sortControl.getMethod())
       .filter((s) => !term || s.title.toLowerCase().includes(term) || s.artist.toLowerCase().includes(term) || (s.album || "").toLowerCase().includes(term));
 
     if (!filtered.length) {

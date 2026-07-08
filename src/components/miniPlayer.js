@@ -29,6 +29,8 @@ export function initMiniPlayer({ onOpenLyrics }) {
   const favBtn = $("#miniFavBtn");
   const progressTrack = $("#miniProgressTrack");
   const progressFill = $("#miniProgressFill");
+  const currentTimeEl = $("#miniCurrentTime");
+  const remainingTimeEl = $("#miniRemainingTime");
   const canvas = $("#waveform");
 
   const visualizer = createVisualizer({ canvas, audioElement: audioEl });
@@ -51,6 +53,7 @@ export function initMiniPlayer({ onOpenLyrics }) {
   on("trackchange", (song) => {
     renderSong(song);
     visualizer.resume();
+    updateProgressUI(0, song?.duration || 0);
   });
 
   on("playstate", (isPlaying) => {
@@ -60,10 +63,19 @@ export function initMiniPlayer({ onOpenLyrics }) {
     playBtn.setAttribute("aria-label", isPlaying ? t("player.pause") : t("player.play"));
   });
 
+  let isDragging = false;
+
   on("timeupdate", (currentTime, duration) => {
-    if (!duration) return;
-    progressFill.style.width = `${(currentTime / duration) * 100}%`;
+    if (isDragging) return;
+    updateProgressUI(currentTime, duration);
   });
+
+  function updateProgressUI(currentTime, duration) {
+    const lang = getLang();
+    if (duration) progressFill.style.width = `${(currentTime / duration) * 100}%`;
+    currentTimeEl.textContent = localizeTime(currentTime, lang);
+    remainingTimeEl.textContent = duration ? `-${localizeTime(duration - currentTime, lang)}` : "-0:00";
+  }
 
   on("favorite", (song) => {
     const current = getCurrentSong();
@@ -87,11 +99,37 @@ export function initMiniPlayer({ onOpenLyrics }) {
     if (song) toggleFavorite(song);
   });
 
-  progressTrack.addEventListener("click", (e) => {
+  function ratioFromEvent(e) {
     const rect = progressTrack.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
-    seekTo(Math.min(1, Math.max(0, ratio)));
+    return Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+  }
+
+  progressTrack.addEventListener("pointerdown", (e) => {
+    if (!audioEl.duration) return;
+    isDragging = true;
+    progressTrack.classList.add("dragging");
+    progressTrack.setPointerCapture(e.pointerId);
+    const ratio = ratioFromEvent(e);
+    updateProgressUI(ratio * audioEl.duration, audioEl.duration);
+    seekTo(ratio);
   });
+
+  progressTrack.addEventListener("pointermove", (e) => {
+    if (!isDragging || !audioEl.duration) return;
+    const ratio = ratioFromEvent(e);
+    updateProgressUI(ratio * audioEl.duration, audioEl.duration);
+    seekTo(ratio);
+  });
+
+  function endDrag(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    progressTrack.classList.remove("dragging");
+    try { progressTrack.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+  }
+  progressTrack.addEventListener("pointerup", endDrag);
+  progressTrack.addEventListener("pointercancel", endDrag);
+
   progressTrack.addEventListener("keydown", (e) => {
     if (e.key === "ArrowRight") seekTo(Math.min(1, (audioEl.currentTime + 5) / (audioEl.duration || 1)));
     if (e.key === "ArrowLeft") seekTo(Math.max(0, (audioEl.currentTime - 5) / (audioEl.duration || 1)));

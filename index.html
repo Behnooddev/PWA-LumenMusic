@@ -54,6 +54,7 @@
     <li><button class="menu-item" data-page="library"><span class="menu-ico" aria-hidden="true">♫</span><span data-i18n="nav.library">Library</span></button></li>
     <li><button class="menu-item" data-page="playlists"><span class="menu-ico" aria-hidden="true">☰</span><span data-i18n="nav.playlists">Playlists</span></button></li>
     <li><button class="menu-item" data-page="favorites"><span class="menu-ico" aria-hidden="true">♥</span><span data-i18n="nav.favorites">Favorites</span></button></li>
+    <li><button class="menu-item" data-page="phoneMusic"><span class="menu-ico" aria-hidden="true">📱</span><span data-i18n="nav.phoneMusic">Phone Music</span></button></li>
     <li><button class="menu-item" data-page="settings"><span class="menu-ico" aria-hidden="true">⚙</span><span data-i18n="nav.settings">Settings</span></button></li>
     <li><button class="menu-item" data-page="about"><span class="menu-ico" aria-hidden="true">ℹ</span><span data-i18n="nav.about">About</span></button></li>
   </ul>
@@ -67,6 +68,7 @@
   <section class="page-container" id="page-library" data-page="library"></section>
   <section class="page-container" id="page-playlists" data-page="playlists"></section>
   <section class="page-container" id="page-favorites" data-page="favorites"></section>
+  <section class="page-container" id="page-phoneMusic" data-page="phoneMusic"></section>
   <section class="page-container" id="page-settings" data-page="settings"></section>
   <section class="page-container" id="page-about" data-page="about"></section>
 </main>
@@ -74,7 +76,13 @@
 <!-- ===================== MINI PLAYER ===================== -->
 <div class="mini-player" id="miniPlayer">
   <div class="mini-progress-track" id="miniProgressTrack" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="100">
-    <div class="mini-progress-fill" id="miniProgressFill"></div>
+    <div class="mini-progress-fill" id="miniProgressFill">
+      <span class="mini-progress-knob" id="miniProgressKnob" aria-hidden="true"></span>
+    </div>
+  </div>
+  <div class="mini-time-row">
+    <span class="mini-time" id="miniCurrentTime">0:00</span>
+    <span class="mini-time" id="miniRemainingTime">-0:00</span>
   </div>
   <div class="mini-inner">
     <div class="mini-left" id="miniOpenLyrics" role="button" tabindex="0" aria-label="Open lyrics">
@@ -109,24 +117,49 @@
 <div class="lyrics-modal" id="lyricsModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="lyricsTitle">
   <div class="lyrics-backdrop" id="lyricsBackdrop"></div>
   <div class="lyrics-sheet glass">
-    <div class="lyrics-head">
-      <img id="lyricsCover" class="lyrics-cover" src="assets/icons/icon-192.png" alt="" />
-      <div>
-        <div class="lyrics-title" id="lyricsTitle">Song title</div>
-        <div class="lyrics-artist" id="lyricsArtist">Artist</div>
+    <div class="lyrics-art-bg" id="lyricsArtBg" aria-hidden="true"></div>
+    <div class="lyrics-content">
+      <div class="lyrics-head">
+        <img id="lyricsCover" class="lyrics-cover" src="assets/icons/icon-192.png" alt="" />
+        <div>
+          <div class="lyrics-title" id="lyricsTitle">Song title</div>
+          <div class="lyrics-artist" id="lyricsArtist">Artist</div>
+        </div>
+        <button class="icon-btn" id="lyricsClose" aria-label="Close lyrics">✕</button>
       </div>
-      <button class="icon-btn" id="lyricsClose" aria-label="Close lyrics">✕</button>
+      <div class="lyrics-lang-toggle">
+        <button class="seg active" data-lang="en">EN</button>
+        <button class="seg" data-lang="fa">فا</button>
+      </div>
+      <div class="lyrics-body" id="lyricsBody"></div>
+      <div class="lyrics-floating-controls" id="lyricsFloatingControls">
+        <button class="mini-btn" id="lyricsPrevBtn" aria-label="Previous track">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6v12M18 6l-9 6 9 6V6z" fill="currentColor"/></svg>
+        </button>
+        <button class="mini-btn play" id="lyricsPlayBtn" aria-label="Play">
+          <svg viewBox="0 0 24 24" width="20" height="20" id="lyricsPlayIcon" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+        </button>
+        <button class="mini-btn" id="lyricsNextBtn" aria-label="Next track">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M18 6v12M6 6l9 6-9 6V6z" fill="currentColor"/></svg>
+        </button>
+      </div>
     </div>
-    <div class="lyrics-lang-toggle">
-      <button class="seg active" data-lang="en">EN</button>
-      <button class="seg" data-lang="fa">فا</button>
-    </div>
-    <div class="lyrics-body" id="lyricsBody"></div>
   </div>
 </div>
 
 <!-- ===================== IMPORT (hidden native input + drag overlay live in JS) ===================== -->
-<input type="file" id="globalFileInput" accept="audio/*" multiple hidden />
+<!--
+  accept intentionally combines the audio/* MIME wildcard with explicit
+  extensions. iOS Safari's file picker matches accept against a file's
+  UTI (Uniform Type Identifier), and for files from iCloud Drive or
+  certain "On My iPhone" locations that UTI match against a bare
+  "audio/*" is inconsistent — matching files appear enabled while
+  others (often m4a/aac from iCloud) appear greyed out even though
+  they're valid audio. Listing extensions alongside the MIME wildcard
+  is the documented workaround and does not reduce what Android/desktop
+  browsers show, since they match on MIME type first regardless.
+-->
+<input type="file" id="globalFileInput" accept="audio/*,.mp3,.m4a,.wav,.aac,.flac,.ogg,.aif,.aiff,.caf" multiple hidden />
 
 <script type="module" src="src/main.js"></script>
 </body>

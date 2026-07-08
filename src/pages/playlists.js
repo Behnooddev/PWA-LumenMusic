@@ -9,6 +9,8 @@
 import { el, clearNode } from "../utils/dom.js";
 import { Playlists, Songs } from "../database/db.js";
 import { createSongRow } from "../components/songRow.js";
+import { createSortControl } from "../components/sortControl.js";
+import { sortSongs } from "../services/sortService.js";
 import { t } from "../services/i18nService.js";
 import { localizeNumber } from "../utils/format.js";
 import { getLang } from "../services/i18nService.js";
@@ -92,7 +94,7 @@ function buildPlaylistCard(playlist, allSongs, lang, rootContainer) {
 
 function buildPlaylistDetail(playlist, allSongs, lang, rootContainer) {
   const detail = el("div", { class: "playlist-detail" });
-  const songs = playlist.songIds.map((id) => allSongs.find((s) => s.id === id)).filter(Boolean);
+  const songsInOrder = playlist.songIds.map((id) => allSongs.find((s) => s.id === id)).filter(Boolean);
 
   const addBtn = el("button", { class: "btn ghost" }, t("playlists.addSongs"));
   addBtn.addEventListener("click", () => {
@@ -101,12 +103,24 @@ function buildPlaylistDetail(playlist, allSongs, lang, rootContainer) {
   });
   detail.appendChild(addBtn);
 
-  if (!songs.length) {
+  if (!songsInOrder.length) {
     detail.appendChild(el("p", { class: "empty-state" }, t("playlists.emptySongs")));
     return detail;
   }
 
-  detail.appendChild(el("p", { class: "reorder-hint" }, t("playlists.reorderHint")));
+  const sortRow = el("div", { class: "count-and-sort" });
+  const sortControl = createSortControl(`playlist:${playlist.id}`, {
+    fallback: "custom",
+    methods: ["custom", "az", "za", "artist", "album", "mostPlayed", "leastPlayed", "duration"],
+    onChange: () => renderPlaylists(rootContainer),
+  });
+  sortRow.append(el("div"), sortControl.element);
+  detail.appendChild(sortRow);
+
+  const isCustomOrder = sortControl.getMethod() === "custom";
+  const songs = isCustomOrder ? songsInOrder : sortSongs(songsInOrder, sortControl.getMethod());
+
+  if (isCustomOrder) detail.appendChild(el("p", { class: "reorder-hint" }, t("playlists.reorderHint")));
   const list = el("div", { class: "song-list draggable-list" });
   detail.appendChild(list);
 
@@ -116,7 +130,7 @@ function buildPlaylistDetail(playlist, allSongs, lang, rootContainer) {
     const current = getCurrentSong();
     const row = createSongRow(song, {
       isPlaying: !!current && current.id === song.id,
-      draggable: true,
+      draggable: isCustomOrder,
       onPlay: (s) => playSong(s, songs),
       onRemove: async (s) => {
         playlist.songIds = playlist.songIds.filter((id) => id !== s.id);
@@ -125,21 +139,23 @@ function buildPlaylistDetail(playlist, allSongs, lang, rootContainer) {
       },
     });
 
-    row.addEventListener("dragstart", () => { dragFromId = song.id; row.classList.add("dragging"); });
-    row.addEventListener("dragend", () => row.classList.remove("dragging"));
-    row.addEventListener("dragover", (e) => e.preventDefault());
-    row.addEventListener("drop", async (e) => {
-      e.preventDefault();
-      if (!dragFromId || dragFromId === song.id) return;
-      const ids = playlist.songIds.slice();
-      const fromIdx = ids.indexOf(dragFromId);
-      const toIdx = ids.indexOf(song.id);
-      ids.splice(fromIdx, 1);
-      ids.splice(toIdx, 0, dragFromId);
-      playlist.songIds = ids;
-      await Playlists.update(playlist);
-      renderPlaylists(rootContainer);
-    });
+    if (isCustomOrder) {
+      row.addEventListener("dragstart", () => { dragFromId = song.id; row.classList.add("dragging"); });
+      row.addEventListener("dragend", () => row.classList.remove("dragging"));
+      row.addEventListener("dragover", (e) => e.preventDefault());
+      row.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        if (!dragFromId || dragFromId === song.id) return;
+        const ids = playlist.songIds.slice();
+        const fromIdx = ids.indexOf(dragFromId);
+        const toIdx = ids.indexOf(song.id);
+        ids.splice(fromIdx, 1);
+        ids.splice(toIdx, 0, dragFromId);
+        playlist.songIds = ids;
+        await Playlists.update(playlist);
+        renderPlaylists(rootContainer);
+      });
+    }
 
     list.appendChild(row);
   });

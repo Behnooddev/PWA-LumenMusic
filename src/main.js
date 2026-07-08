@@ -24,8 +24,11 @@ import { renderHome } from "./pages/home.js";
 import { renderLibrary } from "./pages/library.js";
 import { renderPlaylists } from "./pages/playlists.js";
 import { renderFavorites } from "./pages/favorites.js";
+import { renderPhoneMusic } from "./pages/phoneMusic.js";
 import { renderSettings } from "./pages/settings.js";
 import { renderAbout } from "./pages/about.js";
+import { checkForUpdate } from "./services/updateService.js";
+import { showUpdateAvailable } from "./components/updateDialog.js";
 
 // Registered as early as possible, independent of the async boot() chain
 // below. boot() awaits several things (locale fetch, IndexedDB reads)
@@ -51,6 +54,7 @@ const PAGES = {
   library: (container, ctx) => renderLibrary(container, ctx),
   playlists: (container) => renderPlaylists(container),
   favorites: (container) => renderFavorites(container),
+  phoneMusic: (container, ctx) => renderPhoneMusic(container, ctx),
   settings: (container, ctx) => renderSettings(container, ctx),
   about: (container) => renderAbout(container),
 };
@@ -95,6 +99,13 @@ async function boot() {
   onLanguageChange(() => renderPage(currentPage));
 
   await renderPage("home");
+
+  // Fire-and-forget: never blocks boot, and checkForUpdate() itself
+  // swallows offline/network failures and respects its own cache
+  // interval, so this is safe to call on every page load.
+  checkForUpdate().then((result) => {
+    if (result.available) showUpdateAvailable(result.info);
+  }).catch(() => {});
 }
 
 boot();

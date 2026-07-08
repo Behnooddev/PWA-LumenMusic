@@ -8,6 +8,7 @@
     "library": "Library",
     "playlists": "Playlists",
     "favorites": "Favorites",
+    "phoneMusic": "Phone Music",
     "settings": "Settings",
     "about": "About"
   },
@@ -113,7 +114,12 @@
     "dragHint": "or drop audio files anywhere",
     "processing": "Reading metadata…",
     "addedOne": "Added \"{{title}}\"",
-    "addedMany": "Added {{count}} songs"
+    "addedMany": "Added {{count}} songs",
+    "noneImportable": "No audio files were found in that selection.",
+    "noneImportableIOS": "None of those could be imported. On iPhone, make sure the song is fully downloaded from iCloud (not just showing a cloud icon) before selecting it.",
+    "allFailed": "Those files couldn't be read — they may be protected or corrupted.",
+    "partialAdded": "Added {{added}} of {{total}} songs — the rest couldn't be read.",
+    "iosTip": "On iPhone: choose \"On My iPhone\" or iCloud Drive, and make sure the song is downloaded first."
   },
   "common": {
     "cancel": "Cancel",
@@ -134,6 +140,19 @@
     "exportTitle": "Export a Music Package",
     "exportHint": "This bundles your songs, covers, lyrics, and playlists into a single .lmp file you can share or back up.",
     "exportButton": "Export",
+    "whatToInclude": "What to include",
+    "playlists": "Playlists",
+    "songs": "Songs",
+    "optionalData": "Optional data",
+    "includeCovers": "Cover art",
+    "includeLyrics": "Lyrics",
+    "includeFavorites": "Favorites",
+    "includePlayCount": "Play count",
+    "includePlayHistory": "Play history / recently played",
+    "includeSettings": "App settings (theme, language, sleep timer)",
+    "includeMoodTags": "Mood tags (reserved for future use)",
+    "calculating": "Calculating size…",
+    "estimatedSize": "Estimated package size: {{size}}",
     "stageReading": "Reading package…",
     "stageValidating": "Validating package…",
     "stageImporting": "Importing songs…",
@@ -145,5 +164,42 @@
     "invalidTitle": "This package couldn't be imported",
     "genericErrorTitle": "Something went wrong",
     "moreItems": "…and {{count}} more"
+  },
+  "update": {
+    "title": "Update available",
+    "message": "A new version is ready: {{name}}. Here's what changed:",
+    "updateNow": "Update now",
+    "remindLater": "Remind me later",
+    "applying": "Updating…"
+  },
+  "sort": {
+    "label": "Sort",
+    "az": "A → Z",
+    "za": "Z → A",
+    "artist": "Artist",
+    "album": "Album",
+    "recentlyAdded": "Recently added",
+    "oldestAdded": "Oldest added",
+    "mostPlayed": "Most played",
+    "leastPlayed": "Least played",
+    "duration": "Duration",
+    "custom": "Custom order"
+  },
+  "phoneMusic": {
+    "title": "Phone Music",
+    "subtitle": "Music living on this device, outside your Lumen library.",
+    "chooseFolder": "Choose a folder",
+    "scanHint": "Pick a folder to scan it for audio files.",
+    "scanning": "Scanning…",
+    "scanningCount": "Scanning… found {{count}} so far",
+    "foundCount": "Found {{count}} audio files",
+    "importSelected": "Import selected ({{count}})",
+    "importing": "Importing…",
+    "importingProgress": "Importing {{current}}/{{total}}…",
+    "importedCount": "Imported {{count}} songs",
+    "alreadyInLibrary": "Already in library",
+    "desktopHint": "On desktop, Phone Music shows your imported library — there's no separate device storage to browse here.",
+    "unsupportedTitle": "Not available on this browser",
+    "unsupportedBody": "This browser (including iOS Safari) doesn't provide a way for web apps to browse your device's file system directly. Use Import songs instead to add tracks from your Files app or Photos-style pickers."
   }
 }

@@ -10,7 +10,7 @@
 import { $, $$, el, escapeHtml, clearNode } from "../utils/dom.js";
 import { Lyrics } from "../database/db.js";
 import { t, getLang } from "../services/i18nService.js";
-import { audioEl, on } from "../services/audioEngine.js";
+import { audioEl, on, togglePlay, playNext, playPrev } from "../services/audioEngine.js";
 
 const TIME_TAG = /^\[(\d+):(\d{2})\]\s*(.*)$/;
 
@@ -33,7 +33,12 @@ export function initLyricsModal() {
   const titleEl = $("#lyricsTitle");
   const artistEl = $("#lyricsArtist");
   const coverEl = $("#lyricsCover");
+  const artBg = $("#lyricsArtBg");
   const langTabs = $$(".lyrics-lang-toggle .seg");
+  const playBtn = $("#lyricsPlayBtn");
+  const playIcon = $("#lyricsPlayIcon");
+  const prevBtn = $("#lyricsPrevBtn");
+  const nextBtn = $("#lyricsNextBtn");
 
   let activeSong = null;
   let lyricsLang = getLang() === "fa" ? "fa" : "en";
@@ -47,7 +52,12 @@ export function initLyricsModal() {
     modal.setAttribute("aria-hidden", "false");
     titleEl.textContent = song.title;
     if (artistEl) artistEl.textContent = song.artist;
-    coverEl.src = song.cover || "src/assets/icons/icon-192.png";
+    const coverSrc = song.cover || "src/assets/icons/icon-192.png";
+    coverEl.src = coverSrc;
+    // Blurred, darkened album art as an ambient background — the
+    // "dynamic gradient based on artwork" effect, without needing
+    // pixel-sampling: the art itself supplies the color mood.
+    artBg.style.backgroundImage = `url("${coverSrc}")`;
     editing = false;
     renderView();
     closeBtn.focus();
@@ -66,7 +76,10 @@ export function initLyricsModal() {
     clearNode(body);
 
     if (!raw || !raw.trim()) {
-      body.appendChild(el("p", { class: "empty-state" }, t("lyrics.noLyrics")));
+      body.appendChild(el("div", { class: "lyrics-empty-state" }, [
+        el("div", { class: "lyrics-empty-icon", "aria-hidden": "true" }, "♪"),
+        el("p", { class: "empty-state" }, t("lyrics.noLyrics")),
+      ]));
       const addBtn = el("button", { class: "btn primary" }, t("lyrics.addLyrics"));
       addBtn.addEventListener("click", () => renderEditor(""));
       body.appendChild(addBtn);
@@ -129,6 +142,17 @@ export function initLyricsModal() {
   backdrop.addEventListener("click", close);
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && modal.classList.contains("open")) close();
+  });
+
+  playBtn.addEventListener("click", togglePlay);
+  prevBtn.addEventListener("click", playPrev);
+  nextBtn.addEventListener("click", playNext);
+
+  on("playstate", (isPlaying) => {
+    playIcon.innerHTML = isPlaying
+      ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/>'
+      : '<path d="M8 5v14l11-7z" fill="currentColor"/>';
+    playBtn.setAttribute("aria-label", isPlaying ? t("player.pause") : t("player.play"));
   });
 
   on("timeupdate", (currentTime) => {

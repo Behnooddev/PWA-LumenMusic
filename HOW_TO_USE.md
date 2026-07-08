@@ -42,6 +42,12 @@ genre, embedded cover) directly in the browser. If a file has no embedded
 cover, a placeholder is generated automatically — no network request is
 made for this.
 
+**On iPhone/iPad:** if a song appears greyed out in the file picker, it's
+almost always because it's an iCloud Drive file that hasn't finished
+downloading yet (shown with a cloud icon). Tap it in the Files app first
+to download it, then try importing again. Lumen also shows a small tip
+about this directly on the Library page when it detects iOS.
+
 ---
 
 ## 3. Everyday features
@@ -49,16 +55,21 @@ made for this.
 | Feature | Where |
 |---|---|
 | Play / pause / next / previous | Mini player, always visible at the bottom |
+| Seek | Drag the mini player's progress bar — shows current & remaining time live |
 | Shuffle | Shuffle icon in the mini player |
 | Favorite a song | Heart icon on any song row, or in the mini player |
 | Search | Library page — searches title, artist, and album |
+| Sort | "Sort" button on Library, Favorites, and a playlist's song list — A→Z, artist, album, most/least played, duration, or custom (drag) order; remembered per list |
 | Sleep timer | Settings → Sleep timer — pick 15/30/45/60 minutes |
 | Create a playlist | Playlists page → name it → Create |
 | Add songs to a playlist | Expand a playlist → Add songs → check the ones you want |
-| Reorder a playlist | Expand it, drag rows by the handle |
+| Reorder a playlist | Expand it, set sort to "Custom order", then drag rows by the handle |
 | Add lyrics | Tap the cover in the mini player → Add lyrics |
+| Control playback from lyrics | Floating prev/play/next controls at the bottom of the lyrics sheet |
+| Browse device files (Android) | Phone Music page → Choose a folder |
 | Switch theme | Settings → Theme → Dark / Light / System |
 | Switch language | Settings → Language → English / فارسی (flips to RTL) |
+| Check for app updates | Automatic on load (throttled); or trigger manually by reloading after clearing the cached check |
 
 ---
 
@@ -69,14 +80,20 @@ playlists with someone else running Lumen (or any app implementing the
 `.lmp` spec).
 
 1. Go to **Settings → Music Package (.lmp) → Export Package**.
-2. In the dialog, confirm or edit the **package name** and optionally add
-   your name as **author**.
-3. Click **Export**. Lumen builds the package (you'll see a progress
-   dialog) and your browser downloads a `.lmp` file.
-4. A success dialog confirms how many songs and playlists were included.
+2. The export wizard opens: confirm or edit the **package name** and
+   optionally add your name as **author**.
+3. Choose which **playlists** and **songs** to include (everything is
+   selected by default — uncheck anything you don't want).
+4. Choose which **optional data** to bundle: cover art, lyrics, favorites,
+   play count, play history/recently played, app settings, and reserved
+   mood tags. A live **estimated package size** updates as you change the
+   selection.
+5. Click **Export**. Lumen builds the package (you can **Cancel** mid-way
+   if it's a large library) and your browser downloads a `.lmp` file.
+6. A success dialog confirms how many songs and playlists were included.
 
-The exported file bundles every song's audio, cover, and lyrics (if any),
-plus any playlist that includes at least one exported song.
+The exported file bundles every selected song's audio, cover, and lyrics
+(if included), plus any playlist you selected.
 
 > This is different from **Settings → Export library**, which is a raw
 > JSON backup of absolutely everything (including settings, recently
@@ -223,7 +240,31 @@ reference and validation rules.
 
 ---
 
-## 10. Customizing the project (for developers)
+## 10. Phone Music
+
+Behavior differs by platform, matching real browser capabilities:
+
+- **Android (Chrome/Chromium):** tap **Choose a folder**, pick a folder
+  on your device, and Lumen scans it recursively for audio files. Search
+  and sort the results, check the ones you want, then **Import
+  selected**. Files already in your library (matched by name + size)
+  are marked and skipped automatically — no duplicates.
+- **Desktop:** this page just shows your existing library — there's no
+  separate "phone storage" concept to browse on a desktop browser.
+- **iOS / other browsers without folder-picker support:** you'll see a
+  clear explanation of the limitation instead of a broken or fake
+  feature, with a button to use the normal **Import songs** flow.
+
+## 11. Checking for updates
+
+Lumen checks this project's GitHub repository (releases, or the latest
+commit if there are no releases yet) on a throttled interval — it won't
+spam the GitHub API on every reload. If a newer version is found, a
+dialog offers **Update now** (reloads with the new version) or **Remind
+me later** (asks again after a day). This never blocks the app from
+loading, and does nothing at all while offline.
+
+## 12. Customizing the project (for developers)
 
 Lumen is deliberately unbundled and dependency-free, so most
 customization is just editing the relevant file directly:
@@ -239,6 +280,10 @@ customization is just editing the relevant file directly:
 | Metadata reading | `src/services/metadataService.js` |
 | `.lmp` import/export logic | `src/services/lmpService.js` |
 | The visualizer | `src/services/visualizerService.js` |
+| Sort methods | `src/services/sortService.js` |
+| Update-check behavior/repo | `src/services/updateService.js` (`REPO`, `CURRENT_VERSION`) |
+| Phone Music scanning | `src/services/phoneMusicService.js`, `src/pages/phoneMusic.js` |
+| The (not-yet-enabled) Mood Engine | `src/services/moodEngineService.js`, `docs/MOOD_ENGINE_ARCHITECTURE.md` |
 
 No bundler is involved, so changes take effect on a simple page reload.
 

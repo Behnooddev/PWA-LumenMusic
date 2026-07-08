@@ -5,6 +5,8 @@
 import { el, clearNode } from "../utils/dom.js";
 import { Songs } from "../database/db.js";
 import { createSongRow } from "../components/songRow.js";
+import { createSortControl } from "../components/sortControl.js";
+import { sortSongs } from "../services/sortService.js";
 import { t } from "../services/i18nService.js";
 import { playSong, getCurrentSong, toggleFavorite, on } from "../services/audioEngine.js";
 
@@ -21,12 +23,17 @@ export async function renderFavorites(container) {
     el("p", { class: "sub" }, t("favorites.subtitle")),
   ]));
 
+  const sortRow = el("div", { class: "count-and-sort" });
+  const sortControl = createSortControl("favorites", { fallback: "recentlyAdded", onChange: () => draw() });
+  sortRow.append(el("div"), sortControl.element);
+  container.appendChild(sortRow);
+
   const listWrap = el("div", { class: "song-list" });
   container.appendChild(listWrap);
 
   function draw() {
     clearNode(listWrap);
-    const favSongs = allSongs.filter((s) => s.favorite);
+    const favSongs = sortSongs(allSongs.filter((s) => s.favorite), sortControl.getMethod());
     if (!favSongs.length) {
       listWrap.appendChild(el("p", { class: "empty-state" }, t("favorites.empty")));
       return;

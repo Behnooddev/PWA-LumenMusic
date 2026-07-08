@@ -8,7 +8,7 @@ import { setTheme, getThemePreference } from "../services/themeService.js";
 import { startSleepTimer, cancelSleepTimer, isSleepTimerActive, onTick } from "../services/sleepTimerService.js";
 import { audioEl } from "../services/audioEngine.js";
 import { exportLibrary, importLibrary } from "../services/transferService.js";
-import { exportPackage, importPackage, LmpValidationError } from "../services/lmpService.js";
+import { exportPackage, importPackage, LmpValidationError, ExportCancelledError } from "../services/lmpService.js";
 import * as lmpDialog from "../components/lmpDialog.js";
 import { wipeDatabase } from "../database/db.js";
 
@@ -139,14 +139,15 @@ function buildLmpPanel() {
 
   const exportBtn = el("button", { class: "btn primary data-btn" }, t("lmp.exportAction"));
   exportBtn.addEventListener("click", async () => {
-    const options = await lmpDialog.showExportForm({
+    const options = await lmpDialog.showExportWizard({
       defaultName: `My Lumen Library — ${new Date().toISOString().slice(0, 10)}`,
     });
     if (!options) return;
 
-    lmpDialog.showProgress(t("lmp.stageBuilding"));
+    const cancelToken = { cancelled: false };
+    lmpDialog.showProgress(t("lmp.stageBuilding"), null, null, () => { cancelToken.cancelled = true; });
     try {
-      const result = await exportPackage(options, (current, total) => {
+      const result = await exportPackage({ ...options, cancelToken }, (current, total) => {
         lmpDialog.updateProgress(t("lmp.stageBuilding"), current, total);
       });
       lmpDialog.showSuccess({
@@ -154,6 +155,10 @@ function buildLmpPanel() {
         message: t("lmp.exportSuccessMessage", { songs: result.songCount, playlists: result.playlistCount }),
       });
     } catch (err) {
+      if (err instanceof ExportCancelledError) {
+        lmpDialog.closeDialog();
+        return;
+      }
       lmpDialog.showError({
         title: err instanceof LmpValidationError ? t("lmp.invalidTitle") : t("lmp.genericErrorTitle"),
         message: err.message,

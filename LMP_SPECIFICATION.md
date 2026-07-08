@@ -249,3 +249,38 @@ Lumen's own reader/writer lives at:
 No third-party libraries are used for any of this, by design — the whole
 format is meant to be simple enough to read, audit, and reimplement from
 this document alone.
+
+---
+
+## 12. Optional export wizard fields (added, backward-compatible)
+
+The export wizard can include additional optional data. None of these
+change the required shape described above — they're either extra,
+ignorable fields on an existing file, or new optional root-level files —
+so packages built by older versions of Lumen remain fully valid, and
+packages built with these fields still open correctly in an older reader
+(unknown fields/files are ignored, not rejected).
+
+**Extra fields on `metadata/<id>.json`** (all optional):
+
+| Field | Type | Meaning |
+|---|---|---|
+| `favorite` | boolean | Whether the song was favorited at export time |
+| `playCount` | number | Play count at export time |
+| `moodTags` | string[] | Reserved for the not-yet-built Mood Engine (see `docs/MOOD_ENGINE_ARCHITECTURE.md`) — currently always empty |
+
+**New optional root-level files:**
+
+- **`playHistory.json`** — `[{ "songId": "...", "playedAt": 1752000000000 }, ...]`.
+  On import, entries are merged additively into the importer's own
+  "recently played" list (remapped through the id-collision table from
+  §9). This is safe because it only ever adds rows, never overwrites
+  anything.
+- **`settings.json`** — a flat `{ "key": value }` snapshot of the
+  exporting user's theme/language/sleep-timer preferences. This is
+  written for portability (e.g. moving to a new device) but is
+  **deliberately not auto-applied** when importing into an existing
+  library — silently changing the importing user's own theme/language
+  would be surprising. A future version could offer this as an explicit,
+  opt-in "also apply these settings" checkbox during import.
+

@@ -19,9 +19,16 @@
  */
 
 import { createZip, readZip } from "../utils/zip.js";
-import { Songs, Playlists, Lyrics, exportAllRaw } from "../database/db.js";
+import { Songs, Playlists, Lyrics, Recents, exportAllRaw } from "../database/db.js";
 import { generatePlaceholderCover } from "./coverService.js";
 import { generateId } from "../utils/id.js";
+
+export class ExportCancelledError extends Error {
+  constructor() {
+    super("Export cancelled.");
+    this.name = "ExportCancelledError";
+  }
+}
 
 const PACKAGE_FORMAT_VERSION = 1;
 
@@ -291,6 +298,24 @@ export async function importPackage(file, onProgress) {
     playlistsImported++;
   }
 
+  // Play history is additive and low-risk (unlike settings.json, which
+  // is exported for portability but deliberately never auto-applied
+  // here — silently overwriting the importer's own theme/language
+  // preferences would be surprising).
+  if (entries.has("playHistory.json")) {
+    try {
+      const history = JSON.parse(new TextDecoder().decode(entries.get("playHistory.json")));
+      if (Array.isArray(history)) {
+        for (const entry of history) {
+          const mappedId = idMap.get(entry.songId);
+          if (mappedId) await Recents.record(mappedId);
+        }
+      }
+    } catch {
+      validated.warnings.push("Play history in this package was invalid and was skipped.");
+    }
+  }
+
   return {
     songCount: imported,
     playlistCount: playlistsImported,
@@ -304,15 +329,103 @@ export async function importPackage(file, onProgress) {
 ------------------------------------------------------------------ */
 
 /**
- * Builds a .lmp package from the current library (or a subset of song
- * ids) and triggers a download. Calls onProgress(current, total).
+ * Resolves which songs/playlists an export should include from the
+ * wizard's selection options. `songIds`/`playlistIds` left as `null`
+ * means "everything" (this is the pre-wizard default behavior, kept
+ * for backwards compatibility with the simple export path).
  */
-export async function exportPackage({ packageName = "My Lumen Library", author = "", description = "", songIds = null } = {}, onProgress) {
+function resolveExportSelection(raw, { songIds = null, playlistIds = null } = {}) {
+  if (songIds === null && playlistIds === null) {
+    return { songs: raw.songs, playlists: raw.playlists, explicitPlaylists: false };
+  }
+
+  const idSet = new Set(Array.isArray(songIds) ? songIds : []);
+  const selectedPlaylists = Array.isArray(playlistIds)
+    ? raw.playlists.filter((pl) => playlistIds.includes(pl.id))
+    : [];
+  selectedPlaylists.forEach((pl) => pl.songIds.forEach((id) => idSet.add(id)));
+
+  return {
+    songs: raw.songs.filter((s) => idSet.has(s.id)),
+    playlists: selectedPlaylists,
+    explicitPlaylists: true,
+  };
+}
+
+/**
+ * Cheap, synchronous-ish size estimate (no file re-encoding) so the
+ * wizard can show "≈ 42.3 MB" before the user commits to exporting.
+ * Audio dominates the total, and Blob.size is free to read.
+ */
+export async function estimatePackageSize(options = {}) {
   const raw = await exportAllRaw();
-  const allSongs = songIds ? raw.songs.filter((s) => songIds.includes(s.id)) : raw.songs;
+  const { songs } = resolveExportSelection(raw, options);
+
+  let bytes = 0;
+  for (const song of songs) {
+    bytes += song.audioBlob?.size || 0;
+    if (options.includeCovers !== false && song.cover) {
+      bytes += Math.ceil((song.cover.length * 3) / 4); // base64 -> raw bytes
+    }
+    bytes += 400; // rough JSON metadata overhead per song
+    if (options.includeLyrics !== false) bytes += 200;
+  }
+  return { bytes, songCount: songs.length };
+}
+
+export function formatBytes(bytes) {
+  if (!bytes) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
+/**
+ * Builds a .lmp package and triggers a download.
+ *
+ * `options`:
+ *   packageName, author, description   — manifest fields
+ *   songIds, playlistIds                — selection (null = everything)
+ *   includeCovers, includeLyrics        — default true
+ *   includeFavorites, includePlayCount   — write those as extra,
+ *                                           back-compatible metadata fields
+ *   includePlayHistory                   — writes root-level playHistory.json
+ *   includeSettings                      — writes root-level settings.json
+ *                                           (a portable snapshot; importing
+ *                                           it does NOT overwrite the
+ *                                           importer's own preferences)
+ *   includeMoodTags                       — reserves a `moodTags` field per
+ *                                           song for the not-yet-built Mood
+ *                                           Engine (see docs/MOOD_ENGINE_ARCHITECTURE.md)
+ *   customMetadata                        — arbitrary object merged into
+ *                                           manifest.customMetadata
+ *   cancelToken                           — { cancelled: boolean }; set
+ *                                           `cancelled = true` from the UI
+ *                                           to abort mid-export
+ *
+ * `onProgress(current, total)` is called once per song as it's packed.
+ */
+export async function exportPackage(options = {}, onProgress) {
+  const {
+    packageName = "My Lumen Library",
+    author = "",
+    description = "",
+    includeCovers = true,
+    includeLyrics = true,
+    includeFavorites = false,
+    includePlayCount = false,
+    includePlayHistory = false,
+    includeSettings = false,
+    includeMoodTags = false,
+    customMetadata = null,
+    cancelToken = null,
+  } = options;
+
+  const raw = await exportAllRaw();
+  const { songs: allSongs, playlists: candidatePlaylists, explicitPlaylists } = resolveExportSelection(raw, options);
 
   if (!allSongs.length) {
-    throw new LmpValidationError("There's nothing to export yet.", ["Your library doesn't have any songs."]);
+    throw new LmpValidationError("There's nothing to export yet.", ["No songs match your selection."]);
   }
 
   const zipEntries = [];
@@ -323,12 +436,15 @@ export async function exportPackage({ packageName = "My Lumen Library", author =
     description,
     createdAt: new Date().toISOString(),
     packageFormatVersion: PACKAGE_FORMAT_VERSION,
+    ...(customMetadata && typeof customMetadata === "object" ? { customMetadata } : {}),
   };
   zipEntries.push({ name: "manifest.json", data: new TextEncoder().encode(JSON.stringify(manifest, null, 2)) });
 
-  const lyricsAll = await Promise.all(allSongs.map((s) => Lyrics.get(s.id)));
+  const lyricsAll = includeLyrics ? await Promise.all(allSongs.map((s) => Lyrics.get(s.id))) : [];
 
   for (let i = 0; i < allSongs.length; i++) {
+    if (cancelToken?.cancelled) throw new ExportCancelledError();
+
     const song = allSongs[i];
     onProgress?.(i + 1, allSongs.length);
 
@@ -337,7 +453,7 @@ export async function exportPackage({ packageName = "My Lumen Library", author =
     zipEntries.push({ name: `songs/${song.id}.${audioExt}`, data: audioBytes });
 
     let coverPath = null;
-    if (song.cover) {
+    if (includeCovers && song.cover) {
       const coverMimeMatch = song.cover.match(/^data:([^;]+);/);
       const coverMime = coverMimeMatch ? coverMimeMatch[1] : "image/png";
       const coverExt = extensionFromMime(coverMime, "image");
@@ -347,17 +463,19 @@ export async function exportPackage({ packageName = "My Lumen Library", author =
     }
 
     let lyricsPath = null;
-    const lyricsRecord = lyricsAll[i];
-    if (lyricsRecord && (lyricsRecord.en?.trim() || lyricsRecord.fa?.trim())) {
-      lyricsPath = `lyrics/${song.id}.json`;
-      const lyricsJson = {
-        id: song.id,
-        languages: {
-          en: lyricsTextToLines(lyricsRecord.en || ""),
-          fa: lyricsTextToLines(lyricsRecord.fa || ""),
-        },
-      };
-      zipEntries.push({ name: lyricsPath, data: new TextEncoder().encode(JSON.stringify(lyricsJson, null, 2)) });
+    if (includeLyrics) {
+      const lyricsRecord = lyricsAll[i];
+      if (lyricsRecord && (lyricsRecord.en?.trim() || lyricsRecord.fa?.trim())) {
+        lyricsPath = `lyrics/${song.id}.json`;
+        const lyricsJson = {
+          id: song.id,
+          languages: {
+            en: lyricsTextToLines(lyricsRecord.en || ""),
+            fa: lyricsTextToLines(lyricsRecord.fa || ""),
+          },
+        };
+        zipEntries.push({ name: lyricsPath, data: new TextEncoder().encode(JSON.stringify(lyricsJson, null, 2)) });
+      }
     }
 
     const metadata = {
@@ -370,12 +488,18 @@ export async function exportPackage({ packageName = "My Lumen Library", author =
       song: `songs/${song.id}.${audioExt}`,
       cover: coverPath,
       lyrics: lyricsPath,
+      ...(includeFavorites ? { favorite: !!song.favorite } : {}),
+      ...(includePlayCount ? { playCount: song.playCount || 0 } : {}),
+      ...(includeMoodTags ? { moodTags: song.moodTags || [] } : {}),
     };
     zipEntries.push({ name: `metadata/${song.id}.json`, data: new TextEncoder().encode(JSON.stringify(metadata, null, 2)) });
   }
 
   const exportedIds = new Set(allSongs.map((s) => s.id));
-  const relevantPlaylists = raw.playlists.filter((pl) => pl.songIds.some((id) => exportedIds.has(id)));
+  const relevantPlaylists = explicitPlaylists
+    ? candidatePlaylists
+    : raw.playlists.filter((pl) => pl.songIds.some((id) => exportedIds.has(id)));
+
   for (const pl of relevantPlaylists) {
     const playlistJson = {
       name: pl.name,
@@ -385,6 +509,25 @@ export async function exportPackage({ packageName = "My Lumen Library", author =
     const safeName = pl.name.replace(/[^a-zA-Z0-9_-]+/g, "_") || generateId("playlist");
     zipEntries.push({ name: `playlists/${safeName}.json`, data: new TextEncoder().encode(JSON.stringify(playlistJson, null, 2)) });
   }
+
+  if (includePlayHistory) {
+    const recents = (await Recents.all()).filter((r) => exportedIds.has(r.id));
+    zipEntries.push({
+      name: "playHistory.json",
+      data: new TextEncoder().encode(JSON.stringify(recents.map((r) => ({ songId: r.id, playedAt: r.playedAt })), null, 2)),
+    });
+  }
+
+  if (includeSettings) {
+    const settingsMap = {};
+    raw.settings.forEach((row) => {
+      if (row.key === "updateCheck") return; // internal cache, not meaningful to share
+      settingsMap[row.key] = row.value;
+    });
+    zipEntries.push({ name: "settings.json", data: new TextEncoder().encode(JSON.stringify(settingsMap, null, 2)) });
+  }
+
+  if (cancelToken?.cancelled) throw new ExportCancelledError();
 
   const blob = createZip(zipEntries);
   const url = URL.createObjectURL(blob);

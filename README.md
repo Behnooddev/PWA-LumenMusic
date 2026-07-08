@@ -22,13 +22,23 @@ Created by **Behnood Shafiei** — [github.com/Behnooddev](https://github.com/Be
   empty state with an **Import your first song** button. This is a
   template, not an app containing anyone's personal library.
 - **Automatic metadata** — importing reads ID3 tags (title, artist, album,
-  embedded cover) directly in the browser, with a beautifully generated
-  placeholder cover when none exists.
+  genre, embedded cover) directly in the browser, with a beautifully
+  generated placeholder cover when none exists, and iOS-specific handling
+  so files from iCloud Drive / On My iPhone are actually selectable.
 - **IndexedDB-backed** — songs, playlists, favorites, recently played, play
   counts, lyrics, and settings all persist locally across reloads. No
   server, no account.
 - **Full playback suite** — shuffle, favorites, recently played, search,
-  sleep timer, and drag-and-drop playlist reordering.
+  sleep timer, drag-and-drop playlist reordering, and a universal sorting
+  engine (A→Z, artist, album, most/least played, duration, custom order —
+  persisted per list).
+- **Interactive mini player** — drag-to-seek progress bar with live
+  current/remaining time, not just click-to-seek.
+- **Premium lyrics view** — centered, blurred album-art backdrop, smooth
+  active-line highlighting, and floating playback controls.
+- **Phone Music page** — scans local device folders for audio on Android
+  (File System Access API); shows your library on desktop; explains the
+  platform limitation honestly on iOS instead of faking support.
 - **Reactive visualizer** — a smooth, glowing frequency visualizer built
   directly on the Web Audio API (`AnalyserNode`), with eased animation so
   it never looks jittery.
@@ -40,14 +50,49 @@ Created by **Behnood Shafiei** — [github.com/Behnooddev](https://github.com/Be
   live if it changes).
 - **Import / export library** — back up or migrate your entire library
   (songs, playlists, favorites, settings) as a single JSON file.
-- **Lumen Music Package (`.lmp`)** — export a portable, shareable package
-  of songs, covers, lyrics, and playlists (a plain ZIP file with a custom
-  extension), and import packages built by Lumen or by hand. See
+- **Lumen Music Package (`.lmp`)** — an export **wizard** lets you choose
+  exactly which songs/playlists to include and which optional data
+  (favorites, play counts, play history, lyrics, covers, settings) to
+  bundle, with a live size estimate, progress, and cancellation. Import
+  packages built by Lumen or by hand. See
   [`LMP_SPECIFICATION.md`](./LMP_SPECIFICATION.md).
+- **Update checker** — checks this repo's GitHub Releases (falling back to
+  the latest commit) on a safe interval, with a friendly "Update now /
+  Remind me later" dialog and a changelog preview.
 - **Accessible by default** — keyboard navigation, ARIA labels and roles,
   visible focus states, and `prefers-reduced-motion` support.
 - **Installable PWA** — Add to Home Screen on iOS Safari, or install from
   the browser on desktop.
+
+---
+
+## 🆕 What's new
+
+A stabilization + feature pass on top of the original template:
+
+- **Fixed:** the service worker frequently failed to register at all due
+  to a `load`-event race, which silently broke offline mode. Registration
+  now happens at module-evaluation time instead.
+- **Fixed:** Home/Library/Favorites/Settings leaked an event-bus
+  subscription on every page visit (unbounded memory/CPU growth over a
+  session). Each page now cleans up its previous subscription before
+  creating a new one.
+- **Fixed:** a saved sort preference only updated the sort button's label
+  on load, not the actual list order, due to an async race between the
+  synchronous first render and the IndexedDB read. The list now re-sorts
+  once the saved preference loads.
+- **New:** iOS file-picker compatibility (broadened `accept` attribute,
+  platform-aware error messages, a persistent iOS tip near Import).
+- **New:** GitHub-based update checker with intelligent caching.
+- **New:** LMP export wizard (granular selection, optional data, size
+  estimate, cancellation) — see `LMP_SPECIFICATION.md` §12 for the new
+  backward-compatible optional fields.
+- **New:** premium lyrics redesign, interactive mini-player seeking,
+  universal sorting engine, and the Phone Music page.
+- **Designed, not enabled:** a Mood Engine architecture — see
+  `docs/MOOD_ENGINE_ARCHITECTURE.md`. Its data layer
+  (`src/services/moodEngineService.js`) is real and isolated in its own
+  IndexedDB database, but nothing in the app calls it yet.
 
 ---
 
@@ -85,23 +130,32 @@ src/
     i18nService.js             → loads locales, applies translations, RTL
     themeService.js             → dark / light / system theme
     sleepTimerService.js         → countdown that pauses playback
-    transferService.js            → full library export / import as JSON
-    lmpService.js                  → .lmp package validate / import / export
+    sortService.js                → universal sort methods + persisted prefs
+    transferService.js             → full library export / import as JSON
+    lmpService.js                   → .lmp package validate / import / export
+    updateService.js                 → GitHub release/commit update checks
+    phoneMusicService.js               → File System Access API directory scan
+    moodEngineService.js                → NOT WIRED IN — see docs/MOOD_ENGINE_ARCHITECTURE.md
   pages/                → one render(container) function per page
-    home.js  library.js  playlists.js  favorites.js  settings.js  about.js
+    home.js  library.js  playlists.js  favorites.js
+    phoneMusic.js  settings.js  about.js
   components/           → reusable UI pieces
     songRow.js  miniPlayer.js  lyricsModal.js  sideMenu.js
-    emptyState.js  importPanel.js  lmpDialog.js
+    emptyState.js  importPanel.js  lmpDialog.js  updateDialog.js  sortControl.js
   utils/                → small stateless helpers
     dom.js  format.js  id.js
     zip.js                  → dependency-free ZIP reader/writer
     inflate.js               → dependency-free raw DEFLATE decompressor
+    platform.js               → iOS/Android/Safari feature detection
   locales/              → en.json, fa.json — every UI string
   lyrics/               → lyrics system docs + data-shape example (no real lyrics)
   styles/
     main.css              → theme tokens, layout, components, RTL, a11y
   assets/
     icons/                → app icons (192, 512, apple-touch, maskable)
+
+docs/
+  MOOD_ENGINE_ARCHITECTURE.md → future-feature design, not implemented/enabled
 ```
 
 **Data flow:** UI components never touch IndexedDB or `<audio>` directly.
@@ -301,6 +355,8 @@ imports into the app.
   format specification.
 - [`src/lyrics/README.md`](./src/lyrics/README.md) — the lyrics system in
   detail.
+- [`docs/MOOD_ENGINE_ARCHITECTURE.md`](./docs/MOOD_ENGINE_ARCHITECTURE.md) —
+  the future Mood Engine's design (not implemented/enabled).
 
 ---
 

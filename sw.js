@@ -6,7 +6,7 @@
    so there is no user media to precache here.
    ========================================================= */
 
-const CACHE_NAME = "lumen-shell-v3";
+const CACHE_NAME = "lumen-shell-v4";
 
 const APP_SHELL = [
   "./",
@@ -21,14 +21,18 @@ const APP_SHELL = [
   "./src/services/importService.js",
   "./src/services/lmpService.js",
   "./src/services/metadataService.js",
+  "./src/services/phoneMusicService.js",
   "./src/services/sleepTimerService.js",
+  "./src/services/sortService.js",
   "./src/services/themeService.js",
   "./src/services/transferService.js",
+  "./src/services/updateService.js",
   "./src/services/visualizerService.js",
   "./src/pages/about.js",
   "./src/pages/favorites.js",
   "./src/pages/home.js",
   "./src/pages/library.js",
+  "./src/pages/phoneMusic.js",
   "./src/pages/playlists.js",
   "./src/pages/settings.js",
   "./src/components/emptyState.js",
@@ -38,11 +42,14 @@ const APP_SHELL = [
   "./src/components/miniPlayer.js",
   "./src/components/sideMenu.js",
   "./src/components/songRow.js",
+  "./src/components/sortControl.js",
+  "./src/components/updateDialog.js",
   "./src/utils/dom.js",
   "./src/utils/format.js",
   "./src/utils/id.js",
   "./src/utils/zip.js",
   "./src/utils/inflate.js",
+  "./src/utils/platform.js",
   "./src/locales/en.json",
   "./src/locales/fa.json",
   "./assets/icons/icon-192.png",
@@ -50,6 +57,12 @@ const APP_SHELL = [
   "./assets/icons/apple-touch-icon.png",
   "./assets/icons/maskable-512.png",
 ];
+
+// Lets the update flow (services/updateService.js) force this worker
+// to activate immediately instead of waiting for all tabs to close.
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -59,7 +72,10 @@ self.addEventListener("install", (event) => {
       )
     )
   );
-  self.skipWaiting();
+  // Deliberately no self.skipWaiting() here: once a previous version is
+  // already controlling the page, a newly-installed worker should wait
+  // until the user explicitly chooses "Update now" (see
+  // services/updateService.js), rather than silently taking over.
 });
 
 self.addEventListener("activate", (event) => {
