@@ -368,8 +368,91 @@ main{ padding:6px 16px calc(var(--mini-h) + 34px); min-height:100vh; }
 #miniFavBtn{ font-size:17px; }
 #miniFavBtn.active{ color:var(--yellow); }
 
+/* ================= PLAYER BOTTOM SHEET ================= */
+.player-sheet-modal{ position:fixed; inset:0; z-index:85; visibility:hidden; }
+.player-sheet-modal.open{ visibility:visible; }
+.player-sheet-backdrop{
+  position:absolute; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px);
+  opacity:0; transition:opacity .3s var(--ease);
+}
+.player-sheet-modal.open .player-sheet-backdrop{ opacity:1; }
+
+.player-sheet{
+  position:absolute; left:0; right:0; bottom:0; max-height:92vh; overflow-y:auto;
+  border-radius:26px 26px 0 0; padding:10px 22px calc(env(safe-area-inset-bottom) + 20px);
+  transform:translateY(100%); transition:transform .4s var(--ease);
+  display:flex; flex-direction:column; align-items:center;
+}
+.player-sheet-modal.open .player-sheet{ transform:translateY(0); }
+.player-sheet-handle{ width:40px; height:4px; border-radius:4px; background:rgba(255,255,255,0.2); margin:6px auto 4px; }
+.player-sheet-close{ position:absolute; top:10px; right:14px; background:rgba(255,255,255,0.08); }
+[dir="rtl"] .player-sheet-close{ right:auto; left:14px; }
+
+.player-sheet-art-wrap{ width:100%; display:flex; justify-content:center; margin:18px 0 22px; }
+.player-sheet-cover{
+  width:min(72vw, 280px); height:min(72vw, 280px); border-radius:20px; object-fit:cover;
+  box-shadow:0 20px 50px rgba(0,0,0,0.5);
+}
+.player-sheet-meta{ text-align:center; margin-bottom:22px; width:100%; }
+.player-sheet-title{ font-size:20px; font-weight:800; margin-bottom:4px; }
+.player-sheet-artist{ font-size:14px; color:var(--text-dim); }
+
+.player-sheet-progress-track{
+  position:relative; width:100%; height:5px; border-radius:4px; background:rgba(255,255,255,0.1);
+  cursor:pointer; touch-action:none; transition:height .15s var(--ease);
+}
+.player-sheet-progress-track.dragging{ height:8px; }
+.player-sheet-progress-fill{ position:relative; height:100%; border-radius:4px; width:0%; background:linear-gradient(90deg, var(--yellow-deep), var(--yellow)); transition:width .1s linear; }
+.player-sheet-progress-track.dragging .player-sheet-progress-fill{ transition:none; }
+.player-sheet-progress-knob{
+  position:absolute; right:-7px; top:50%; transform:translateY(-50%) scale(0);
+  width:15px; height:15px; border-radius:50%; background:#fff; box-shadow:0 1px 8px rgba(0,0,0,0.5);
+  transition:transform .15s var(--ease);
+}
+.player-sheet-progress-track:hover .player-sheet-progress-knob,
+.player-sheet-progress-track.dragging .player-sheet-progress-knob{ transform:translateY(-50%) scale(1); }
+.player-sheet-time-row{ width:100%; display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-dim); margin:6px 0 24px; font-variant-numeric:tabular-nums; }
+
+.player-sheet-controls{ display:flex; align-items:center; justify-content:center; gap:18px; width:100%; margin-bottom:22px; }
+.player-sheet-controls .mini-btn{ width:42px; height:42px; background:rgba(255,255,255,0.06); position:relative; }
+.player-sheet-controls .mini-btn.active{ color:var(--yellow); }
+.player-sheet-controls .mini-btn.play.large{
+  width:66px; height:66px; background:radial-gradient(circle at 35% 30%, var(--yellow-soft), var(--yellow-deep));
+  color:#241a02; box-shadow:0 6px 22px rgba(255,209,70,0.4);
+}
+.repeat-one-badge{
+  position:absolute; top:2px; right:2px; font-size:8px; font-weight:800; width:13px; height:13px;
+  border-radius:50%; background:var(--yellow); color:#241a02; display:flex; align-items:center; justify-content:center;
+}
+
+.player-sheet-secondary-row{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; flex-wrap:wrap; }
+.player-sheet-secondary-row .mini-btn{ width:38px; height:38px; background:rgba(255,255,255,0.06); }
+#sheetFavBtn.active{ color:var(--yellow); }
+.sheet-pill-btn{
+  border:1px solid var(--panel-border); background:rgba(255,255,255,0.06); color:var(--text);
+  padding:8px 14px; border-radius:999px; font-size:12.5px; font-weight:700; cursor:pointer;
+}
+.sheet-pill-btn.disabled-hint{ opacity:0.55; }
+.sheet-pill-btn.shake{ animation:sheet-shake .35s; }
+@keyframes sheet-shake{ 25%{ transform:translateX(-4px); } 75%{ transform:translateX(4px); } }
+
+.sheet-panel{ width:100%; margin-top:16px; border-radius:var(--radius-md); background:rgba(0,0,0,0.2); padding:12px; max-height:280px; overflow-y:auto; }
+.sheet-speed-list{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+.sheet-speed-item{
+  border:1px solid var(--panel-border); background:transparent; color:var(--text-dim);
+  padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer;
+}
+.sheet-speed-item.active{ background:linear-gradient(135deg, var(--yellow-soft), var(--yellow-deep)); color:#241a02; border-color:transparent; }
+.sheet-hint{ text-align:center; color:var(--text-dim); font-size:13px; padding:10px; margin:0; }
+.sheet-add-instrumental{ display:flex; justify-content:center; margin-top:8px; }
+.sheet-queue-list{ display:flex; flex-direction:column; gap:8px; }
+
+@media (min-width:860px){
+  .player-sheet{ left:50%; right:auto; transform:translate(-50%,100%); max-width:420px; border-radius:26px; bottom:24px; }
+  .player-sheet-modal.open .player-sheet{ transform:translate(-50%,0); }
+}
 /* ================= LYRICS MODAL ================= */
-.lyrics-modal{ position:fixed; inset:0; z-index:80; visibility:hidden; }
+.lyrics-modal{ position:fixed; inset:0; z-index:90; visibility:hidden; }
 .lyrics-modal.open{ visibility:visible; }
 .lyrics-backdrop{
   position:absolute; inset:0; background:rgba(0,0,0,0.55); backdrop-filter:blur(6px);
@@ -387,12 +470,20 @@ main{ padding:6px 16px calc(var(--mini-h) + 34px); min-height:100vh; }
 
 /* Blurred, darkened album art fills the whole sheet as an ambient,
    color-matched backdrop — the "dynamic gradient from artwork" effect,
-   achieved with the artwork itself rather than a computed palette. */
+   achieved with the artwork itself rather than a computed palette.
+   A slow ambient breathing animation keeps it from feeling static. */
 .lyrics-art-bg{
   position:absolute; inset:-10%; background-size:cover; background-position:center;
   filter:blur(48px) saturate(1.35) brightness(0.5); transform:scale(1.15);
-  transition:background-image .5s var(--ease); z-index:0;
+  transition:background-image .6s var(--ease); z-index:0;
+  animation:lyrics-bg-breathe 10s ease-in-out infinite;
 }
+@keyframes lyrics-bg-breathe{
+  0%, 100% { transform:scale(1.15) rotate(0deg); filter:blur(48px) saturate(1.35) brightness(0.5); }
+  50%      { transform:scale(1.24) rotate(1.5deg); filter:blur(56px) saturate(1.55) brightness(0.58); }
+}
+@media (prefers-reduced-motion: reduce){ .lyrics-art-bg{ animation:none; } }
+
 .lyrics-sheet::after{
   content:""; position:absolute; inset:0; z-index:0;
   background:linear-gradient(180deg, rgba(10,10,12,0.35), rgba(10,10,12,0.82) 60%, rgba(10,10,12,0.92));
@@ -422,12 +513,22 @@ main{ padding:6px 16px calc(var(--mini-h) + 34px); min-height:100vh; }
 .lyric-line{
   font-size:17px; font-weight:600; line-height:1.85; color:rgba(243,241,234,0.38);
   padding:6px 10px; border-radius:10px; max-width:36ch;
-  filter:blur(0.2px); transform:scale(0.97);
-  transition:color .35s var(--ease), transform .35s var(--ease), filter .35s var(--ease), text-shadow .35s var(--ease);
+  filter:blur(0.2px); transform:scale(0.97) translateY(0);
+  transition:color .4s var(--ease), transform .4s cubic-bezier(.34,1.4,.4,1), filter .4s var(--ease), text-shadow .4s var(--ease);
+  animation:lyric-line-in .5s var(--ease) backwards;
 }
+@keyframes lyric-line-in{ from{ opacity:0; transform:translateY(10px) scale(0.97); } to{ opacity:1; transform:translateY(0) scale(0.97); } }
 .lyric-line.current{
-  color:var(--yellow); font-size:20px; font-weight:800; transform:scale(1.05);
-  filter:blur(0); text-shadow:0 0 24px rgba(255,209,70,0.45);
+  color:var(--yellow); font-size:20px; font-weight:800; transform:scale(1.06) translateY(0);
+  filter:blur(0); animation:lyric-line-in .5s var(--ease) backwards, lyric-glow-pulse 2.4s ease-in-out infinite .5s;
+}
+@keyframes lyric-glow-pulse{
+  0%, 100% { text-shadow:0 0 20px rgba(255,209,70,0.4); }
+  50%      { text-shadow:0 0 30px rgba(255,209,70,0.65); }
+}
+@media (prefers-reduced-motion: reduce){
+  .lyric-line{ animation:none; }
+  .lyric-line.current{ animation:none; }
 }
 
 .lyrics-empty-state{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:30px 10px 10px; }
@@ -535,6 +636,14 @@ main{ padding:6px 16px calc(var(--mini-h) + 34px); min-height:100vh; }
 .lmp-details-warn li{ color:var(--yellow-soft); }
 .lmp-details-error li{ color:#ff9b9b; }
 .lmp-details li::before{ content:"• "; opacity:.7; }
+
+.update-version-rows{ width:100%; display:flex; flex-direction:column; gap:6px; margin:6px 0 4px; }
+.update-version-row{
+  display:flex; justify-content:space-between; font-size:12.5px;
+  padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.04);
+}
+.update-version-label{ color:var(--text-dim); }
+.update-version-value{ font-weight:700; color:var(--text); }
 
 /* Export wizard — a wider, left-aligned, scrollable variant of the
    same dialog shell used for the simple progress/success/error states. */

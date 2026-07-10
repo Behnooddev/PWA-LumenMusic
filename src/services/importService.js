@@ -27,6 +27,31 @@ export async function getExistingFingerprints() {
   return new Set(all.map((s) => s.sourceFingerprint).filter(Boolean));
 }
 
+/**
+ * Attaches an instrumental version to an existing song. This is the
+ * manual-import path for the vocal/instrumental switcher — the same
+ * `song.instrumentalBlob` field this populates is exactly what a
+ * future AI stem-separation feature would populate too, so the
+ * player's switching logic (audioEngine.switchVariant) never needs
+ * to change regardless of how the instrumental was obtained.
+ */
+export async function attachInstrumental(song, file) {
+  const updated = {
+    ...song,
+    instrumentalBlob: file,
+    instrumentalMimeType: file.type || "audio/mpeg",
+  };
+  await Songs.update(updated);
+  return updated;
+}
+
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 export async function importFiles(fileList, onProgress) {
   const files = Array.from(fileList).filter(isAudioFile);
   const imported = [];
@@ -36,7 +61,15 @@ export async function importFiles(fileList, onProgress) {
     onProgress?.(i + 1, files.length, file.name);
 
     try {
-      const meta = await extractMetadata(file);
+      // extractMetadata has its own internal timeout for duration
+      // reading, but this outer timeout is a second safety net: no
+      // single problematic file (of any kind) should ever be able to
+      // freeze the rest of a multi-file import.
+      const meta = await withTimeout(
+        extractMetadata(file),
+        10000,
+        { title: file.name.replace(/\.[^/.]+$/, ""), artist: "Unknown Artist", album: "", genre: "", cover: null, duration: 0 }
+      );
       const cover = meta.cover
         ? await blobToDataUrl(meta.cover)
         : generatePlaceholderCover(meta.title || file.name);

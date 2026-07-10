@@ -2,3 +2,8 @@
 node_modules/
 *.log
 docs/screenshot-*.png
+android/
+dist/
+capacitor.config.json
+package.json
+package-lock.json

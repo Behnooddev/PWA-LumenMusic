@@ -15,12 +15,11 @@ import {
   toggleFavorite, seekTo, setShuffle, isShuffleOn, getCurrentSong,
 } from "../services/audioEngine.js";
 
-export function initMiniPlayer({ onOpenLyrics }) {
+export function initMiniPlayer() {
   const miniPlayer = $("#miniPlayer");
   const miniTitle = $("#miniTitle");
   const miniArtist = $("#miniArtist");
   const miniCover = $("#miniCover");
-  const miniOpenLyrics = $("#miniOpenLyrics");
   const playBtn = $("#playBtn");
   const playIcon = $("#playIcon");
   const prevBtn = $("#prevBtn");
@@ -134,6 +133,4 @@ export function initMiniPlayer({ onOpenLyrics }) {
     if (e.key === "ArrowRight") seekTo(Math.min(1, (audioEl.currentTime + 5) / (audioEl.duration || 1)));
     if (e.key === "ArrowLeft") seekTo(Math.max(0, (audioEl.currentTime - 5) / (audioEl.duration || 1)));
   });
-
-  miniOpenLyrics.addEventListener("click", () => onOpenLyrics?.(getCurrentSong()));
 }

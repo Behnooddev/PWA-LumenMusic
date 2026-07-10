@@ -54,22 +54,26 @@ about this directly on the Library page when it detects iOS.
 
 | Feature | Where |
 |---|---|
-| Play / pause / next / previous | Mini player, always visible at the bottom |
-| Seek | Drag the mini player's progress bar — shows current & remaining time live |
-| Shuffle | Shuffle icon in the mini player |
-| Favorite a song | Heart icon on any song row, or in the mini player |
+| Open the full player | Tap the mini player's cover/title area — opens the bottom sheet |
+| Play / pause / next / previous | Mini player (quick access) or the bottom sheet |
+| Seek | Drag the progress bar in the mini player or the bottom sheet — shows current & remaining time live |
+| Shuffle | Shuffle icon in the mini player or bottom sheet |
+| Repeat (off / all / one) | Repeat icon in the bottom sheet — cycles through the three modes |
+| Playback speed | Bottom sheet → speed pill (e.g. "1x") → pick 0.5x–2x; remembered |
+| Vocal / Instrumental | Bottom sheet → tap "Vocals"/"Instrumental" pill to switch, or attach an instrumental version if none exists yet |
+| Queue | Bottom sheet → Queue button — see what's up next, tap any song to jump to it |
+| Favorite a song | Heart icon on any song row, the mini player, or the bottom sheet |
 | Search | Library page — searches title, artist, and album |
 | Sort | "Sort" button on Library, Favorites, and a playlist's song list — A→Z, artist, album, most/least played, duration, or custom (drag) order; remembered per list |
 | Sleep timer | Settings → Sleep timer — pick 15/30/45/60 minutes |
 | Create a playlist | Playlists page → name it → Create |
 | Add songs to a playlist | Expand a playlist → Add songs → check the ones you want |
 | Reorder a playlist | Expand it, set sort to "Custom order", then drag rows by the handle |
-| Add lyrics | Tap the cover in the mini player → Add lyrics |
-| Control playback from lyrics | Floating prev/play/next controls at the bottom of the lyrics sheet |
+| Add lyrics | Bottom sheet → Lyrics button |
 | Browse device files (Android) | Phone Music page → Choose a folder |
 | Switch theme | Settings → Theme → Dark / Light / System |
 | Switch language | Settings → Language → English / فارسی (flips to RTL) |
-| Check for app updates | Automatic on load (throttled); or trigger manually by reloading after clearing the cached check |
+| Check for app updates | Automatic on load (throttled, based on `version.json`) |
 
 ---
 
@@ -257,12 +261,20 @@ Behavior differs by platform, matching real browser capabilities:
 
 ## 11. Checking for updates
 
-Lumen checks this project's GitHub repository (releases, or the latest
-commit if there are no releases yet) on a throttled interval — it won't
-spam the GitHub API on every reload. If a newer version is found, a
-dialog offers **Update now** (reloads with the new version) or **Remind
-me later** (asks again after a day). This never blocks the app from
-loading, and does nothing at all while offline.
+Lumen checks its own `version.json` file — fetched fresh (cache-busted)
+from the network and compared against the copy cached when the app was
+installed — on a throttled interval, so it never spams the server. If
+the deployed `version.json` has a newer `version` than what's cached, a
+dialog shows the current version, the latest version, its release date,
+and the changelog, with **Update now** (safely activates the new service
+worker, then reloads) or **Remind me later** (asks again once an even
+newer version appears). This never blocks the app from loading, and does
+nothing at all while offline or if `version.json` can't be reached.
+
+**Shipping a new version is just editing `version.json`** — bump
+`version` (proper semver: `1.0.9` < `1.0.10`), `build`, `releaseDate`,
+and `changelog`, then deploy. No other file needs to change for the
+update check itself.
 
 ## 12. Customizing the project (for developers)
 
@@ -281,7 +293,9 @@ customization is just editing the relevant file directly:
 | `.lmp` import/export logic | `src/services/lmpService.js` |
 | The visualizer | `src/services/visualizerService.js` |
 | Sort methods | `src/services/sortService.js` |
-| Update-check behavior/repo | `src/services/updateService.js` (`REPO`, `CURRENT_VERSION`) |
+| Update-check behavior | `src/services/updateService.js`; edit `version.json` to ship a release |
+| The player bottom sheet | `src/components/playerSheet.js` |
+| Version comparison logic | `src/utils/semver.js` |
 | Phone Music scanning | `src/services/phoneMusicService.js`, `src/pages/phoneMusic.js` |
 | The (not-yet-enabled) Mood Engine | `src/services/moodEngineService.js`, `docs/MOOD_ENGINE_ARCHITECTURE.md` |
 

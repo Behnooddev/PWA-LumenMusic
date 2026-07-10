@@ -6,12 +6,13 @@
    so there is no user media to precache here.
    ========================================================= */
 
-const CACHE_NAME = "lumen-shell-v4";
+const CACHE_NAME = "lumen-shell-v6";
 
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./version.json",
   "./src/styles/main.css",
   "./src/main.js",
   "./src/database/db.js",
@@ -40,6 +41,7 @@ const APP_SHELL = [
   "./src/components/lmpDialog.js",
   "./src/components/lyricsModal.js",
   "./src/components/miniPlayer.js",
+  "./src/components/playerSheet.js",
   "./src/components/sideMenu.js",
   "./src/components/songRow.js",
   "./src/components/sortControl.js",
@@ -50,6 +52,7 @@ const APP_SHELL = [
   "./src/utils/zip.js",
   "./src/utils/inflate.js",
   "./src/utils/platform.js",
+  "./src/utils/semver.js",
   "./src/locales/en.json",
   "./src/locales/fa.json",
   "./assets/icons/icon-192.png",
@@ -91,12 +94,23 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
+  const url = new URL(request.url);
+  // Cache-busted requests (e.g. version.json?t=...) are meant to always
+  // hit the network — caching them would both defeat their purpose and
+  // pollute the cache with one entry per timestamp forever.
+  const isCacheBusted = url.search.length > 0 && url.origin === self.location.origin;
+
+  if (isCacheBusted) {
+    event.respondWith(fetch(request).catch(() => caches.match(request.url.split("?")[0])));
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
       return fetch(request)
         .then((response) => {
-          if (response.ok && new URL(request.url).origin === self.location.origin) {
+          if (response.ok && url.origin === self.location.origin) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }

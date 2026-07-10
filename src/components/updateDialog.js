@@ -1,16 +1,16 @@
 /**
  * components/updateDialog.js
  * ---------------------------------------------------------------
- * "A new version is available" prompt. Deliberately reuses the same
- * .lmp-modal / .lmp-sheet CSS classes as components/lmpDialog.js so
- * it's visually consistent with zero new stylesheet rules — this is
- * a second instance of the same visual pattern, not a new one.
+ * "A new version is available" prompt, driven by version.json.
+ * Reuses the same .lmp-modal / .lmp-sheet CSS classes as
+ * components/lmpDialog.js for visual consistency — no new stylesheet
+ * rules for the dialog shell itself.
  * ---------------------------------------------------------------
  */
 
 import { el, clearNode } from "../utils/dom.js";
 import { t } from "../services/i18nService.js";
-import { remindLater, applyUpdateAndReload } from "../services/updateService.js";
+import { dismissVersion, applyUpdateAndReload } from "../services/updateService.js";
 
 let modalEl = null;
 let sheetEl = null;
@@ -40,8 +40,16 @@ function close() {
   modalEl.setAttribute("aria-hidden", "true");
 }
 
-/** Shows the "update available" dialog for the given release/commit info. */
-export function showUpdateAvailable(info) {
+function formatDate(dateStr) {
+  try {
+    return new Date(dateStr).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  } catch {
+    return dateStr || "";
+  }
+}
+
+/** Shows the "update available" dialog for `{ current, latest }` version.json payloads. */
+export function showUpdateAvailable({ current, latest }) {
   ensureModal();
   clearNode(sheetEl);
 
@@ -49,33 +57,60 @@ export function showUpdateAvailable(info) {
   const updateBtn = el("button", { class: "btn primary" }, t("update.updateNow"));
 
   remindBtn.addEventListener("click", async () => {
-    await remindLater(info.identifier);
+    await dismissVersion(latest.version);
     close();
   });
+
   updateBtn.addEventListener("click", async () => {
+    const stageLabel = el("h2", { class: "lmp-title" }, t("update.stageChecking"));
     clearNode(sheetEl);
-    sheetEl.append(
-      el("div", { class: "lmp-spinner", "aria-hidden": "true" }),
-      el("h2", { class: "lmp-title" }, t("update.applying"))
-    );
-    await applyUpdateAndReload();
+    sheetEl.append(el("div", { class: "lmp-spinner", "aria-hidden": "true" }), stageLabel);
+
+    await applyUpdateAndReload((stage) => {
+      const map = {
+        checking: t("update.stageChecking"),
+        installing: t("update.stageInstalling"),
+        activating: t("update.stageActivating"),
+        timeout: t("update.stageTimeout"),
+      };
+      stageLabel.textContent = map[stage] || map.checking;
+      if (stage === "timeout") {
+        // Never leave the UI silently stuck — offer a manual retry.
+        const retryBtn = el("button", { class: "btn primary" }, t("common.close"));
+        retryBtn.addEventListener("click", close);
+        sheetEl.appendChild(el("div", { class: "lmp-actions" }, [retryBtn]));
+      }
+    });
   });
 
-  const changelogLines = (info.changelog || "").split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 12);
+  const versionRows = el("div", { class: "update-version-rows" }, [
+    versionRow(t("update.currentVersion"), current.version),
+    versionRow(t("update.latestVersion"), latest.version),
+    versionRow(t("update.releaseDate"), formatDate(latest.releaseDate)),
+  ]);
+
+  const changelog = Array.isArray(latest.changelog) ? latest.changelog.filter(Boolean).slice(0, 12) : [];
 
   sheetEl.append(
     el("div", { class: "lmp-icon", "aria-hidden": "true" }, "✨"),
     el("h2", { class: "lmp-title" }, t("update.title")),
-    el("p", { class: "lmp-message" }, t("update.message", { name: info.name })),
-    ...(changelogLines.length ? [buildChangelogList(changelogLines)] : []),
+    versionRows,
+    ...(changelog.length ? [buildChangelogList(changelog)] : []),
     el("div", { class: "lmp-actions" }, [remindBtn, updateBtn])
   );
 
   open();
 }
 
+function versionRow(label, value) {
+  return el("div", { class: "update-version-row" }, [
+    el("span", { class: "update-version-label" }, label),
+    el("span", { class: "update-version-value" }, value),
+  ]);
+}
+
 function buildChangelogList(lines) {
   const list = el("ul", { class: "lmp-details" });
-  lines.forEach((line) => list.appendChild(el("li", {}, line.replace(/^[-*]\s*/, ""))));
+  lines.forEach((line) => list.appendChild(el("li", {}, line)));
   return list;
 }

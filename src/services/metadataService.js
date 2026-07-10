@@ -143,16 +143,27 @@ function blobToDataUrl(blob) {
   });
 }
 
-function readAudioDuration(file) {
+function readAudioDuration(file, timeoutMs = 8000) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
     const audio = new Audio();
-    const cleanup = () => URL.revokeObjectURL(url);
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      resolve(value);
+      URL.revokeObjectURL(url);
+    };
+    // Some iOS files (particularly iCloud-hosted files that stall
+    // mid-download, or unusual codecs Safari can't probe) never fire
+    // loadedmetadata or error at all. Without this timeout, one such
+    // file would hang the entire sequential import queue forever.
+    const timeoutId = setTimeout(() => finish(0), timeoutMs);
     audio.addEventListener("loadedmetadata", () => {
-      resolve(isFinite(audio.duration) ? audio.duration : 0);
-      cleanup();
+      finish(isFinite(audio.duration) ? audio.duration : 0);
     });
-    audio.addEventListener("error", () => { resolve(0); cleanup(); });
+    audio.addEventListener("error", () => finish(0));
     audio.src = url;
   });
 }

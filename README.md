@@ -56,9 +56,16 @@ Created by **Behnood Shafiei** — [github.com/Behnooddev](https://github.com/Be
   bundle, with a live size estimate, progress, and cancellation. Import
   packages built by Lumen or by hand. See
   [`LMP_SPECIFICATION.md`](./LMP_SPECIFICATION.md).
-- **Update checker** — checks this repo's GitHub Releases (falling back to
-  the latest commit) on a safe interval, with a friendly "Update now /
-  Remind me later" dialog and a changelog preview.
+- **Update checker** — checks this app's own `version.json` (cache-busted,
+  so it always sees the real deployed version) against the version
+  cached at install time, with a friendly "Update now / Remind me later"
+  dialog showing current/latest version, release date, and changelog.
+  Shipping a new version only requires editing `version.json`.
+- **Central bottom-sheet player** — tapping the mini player opens a full
+  playback controller: large art, transport controls, shuffle, repeat
+  (off/all/one), favorite, draggable seek bar with time labels, playback
+  speed (0.5x–2x), vocal/instrumental switching, and buttons into Lyrics
+  and Queue.
 - **Accessible by default** — keyboard navigation, ARIA labels and roles,
   visible focus states, and `prefers-reduced-motion` support.
 - **Installable PWA** — Add to Home Screen on iOS Safari, or install from
@@ -68,7 +75,36 @@ Created by **Behnood Shafiei** — [github.com/Behnooddev](https://github.com/Be
 
 ## 🆕 What's new
 
-A stabilization + feature pass on top of the original template:
+**Latest pass — Phase 1 (see `version.json` for the current version):**
+
+- **Replaced** the GitHub-based update checker entirely with a lightweight
+  `version.json`-based system: proper semantic version comparison
+  (`1.0.9 < 1.0.10`, `1.2.0 < 1.10.0`, etc.), cache-busted fetches so
+  checks never see stale data, and an "Update now" flow that properly
+  waits for the new service worker to activate before reloading — with a
+  timeout safety net so it can never hang forever.
+- **New:** the mini player now opens a full **bottom sheet** — large art,
+  transport controls, shuffle, repeat (off/all/one), favorite, a
+  draggable seek bar with time labels, playback speed, vocal/instrumental
+  switching, and buttons into Lyrics and the Queue.
+- **New:** playback speed control (0.5x–2x), persisted across sessions.
+- **New:** vocal/instrumental switching — attach an instrumental version
+  to any song (manually today; the same `instrumentalBlob` field is the
+  extension point for future AI stem separation, so the player itself
+  never needs to change). Also exportable/importable via `.lmp` packages.
+- **Fixed:** the lyrics screen's auto-scroll called `scrollIntoView` on
+  every single `timeupdate` tick (many times per second) even when the
+  active line hadn't changed, causing jittery, self-interrupting scroll
+  animations. It now only scrolls when the active line actually changes.
+- **Improved:** the lyrics screen's background is now genuinely dynamic
+  (a slow ambient "breathing" animation, not a static blurred image), and
+  the active line has a subtle pulsing glow.
+- **Fixed:** a hanging/unreadable audio file (common with certain iOS
+  cloud-hosted files) could freeze the entire import queue forever with
+  no feedback. Reading duration and metadata now both have timeout
+  fallbacks, so one bad file can never block the rest of a batch import.
+
+**Previous pass — stabilization + earlier features:**
 
 - **Fixed:** the service worker frequently failed to register at all due
   to a `load`-event race, which silently broke offline mode. Registration
@@ -83,7 +119,6 @@ A stabilization + feature pass on top of the original template:
   once the saved preference loads.
 - **New:** iOS file-picker compatibility (broadened `accept` attribute,
   platform-aware error messages, a persistent iOS tip near Import).
-- **New:** GitHub-based update checker with intelligent caching.
 - **New:** LMP export wizard (granular selection, optional data, size
   estimate, cancellation) — see `LMP_SPECIFICATION.md` §12 for the new
   backward-compatible optional fields.
@@ -93,6 +128,27 @@ A stabilization + feature pass on top of the original template:
   `docs/MOOD_ENGINE_ARCHITECTURE.md`. Its data layer
   (`src/services/moodEngineService.js`) is real and isolated in its own
   IndexedDB database, but nothing in the app calls it yet.
+- **Replaced:** the GitHub Releases/Commits update checker with a
+  lightweight `version.json`-based one (proper semver comparison,
+  cache-busted fetch, safe SW activation flow). Shipping a release is
+  now just editing `version.json`.
+- **New:** the mini player now opens a full bottom-sheet player
+  (large art, transport, shuffle/repeat, favorite, draggable seek with
+  time labels, playback speed, vocal/instrumental switching, Lyrics and
+  Queue buttons) instead of jumping straight to lyrics.
+- **New:** playback speed control (0.5x–2x), persisted.
+- **New:** vocal/instrumental switching — attach an instrumental version
+  to any song (manually today; the same `instrumentalBlob` field is the
+  extension point for future AI stem separation, with no player
+  rewiring needed). Round-trips through `.lmp` packages too.
+- **Fixed:** the lyrics screen called `scrollIntoView` on every single
+  `timeupdate` tick (many times per second) even when the active line
+  hadn't changed, fighting its own smooth-scroll animation. It now only
+  scrolls when the active line actually changes.
+- **Fixed:** an audio file whose `loadedmetadata`/`error` events never
+  fire (an iOS/iCloud edge case) could silently freeze the entire
+  import queue forever. Both the duration read and the overall
+  per-file metadata step now have timeout fallbacks.
 
 ---
 
@@ -133,17 +189,17 @@ src/
     sortService.js                → universal sort methods + persisted prefs
     transferService.js             → full library export / import as JSON
     lmpService.js                   → .lmp package validate / import / export
-    updateService.js                 → GitHub release/commit update checks
+    updateService.js                 → version.json-based update checks
     phoneMusicService.js               → File System Access API directory scan
     moodEngineService.js                → NOT WIRED IN — see docs/MOOD_ENGINE_ARCHITECTURE.md
   pages/                → one render(container) function per page
     home.js  library.js  playlists.js  favorites.js
     phoneMusic.js  settings.js  about.js
   components/           → reusable UI pieces
-    songRow.js  miniPlayer.js  lyricsModal.js  sideMenu.js
+    songRow.js  miniPlayer.js  playerSheet.js  lyricsModal.js  sideMenu.js
     emptyState.js  importPanel.js  lmpDialog.js  updateDialog.js  sortControl.js
   utils/                → small stateless helpers
-    dom.js  format.js  id.js
+    dom.js  format.js  id.js  semver.js
     zip.js                  → dependency-free ZIP reader/writer
     inflate.js               → dependency-free raw DEFLATE decompressor
     platform.js               → iOS/Android/Safari feature detection

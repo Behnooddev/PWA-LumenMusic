@@ -16,6 +16,7 @@ import { initI18n, onLanguageChange } from "./services/i18nService.js";
 import { initTheme } from "./services/themeService.js";
 import { initSideMenu } from "./components/sideMenu.js";
 import { initMiniPlayer } from "./components/miniPlayer.js";
+import { initPlayerSheet } from "./components/playerSheet.js";
 import { initLyricsModal } from "./components/lyricsModal.js";
 import { initImportPanel } from "./components/importPanel.js";
 import { Songs } from "./database/db.js";
@@ -29,6 +30,7 @@ import { renderSettings } from "./pages/settings.js";
 import { renderAbout } from "./pages/about.js";
 import { checkForUpdate } from "./services/updateService.js";
 import { showUpdateAvailable } from "./components/updateDialog.js";
+import { restorePlaybackPreferences } from "./services/audioEngine.js";
 
 // Registered as early as possible, independent of the async boot() chain
 // below. boot() awaits several things (locale fetch, IndexedDB reads)
@@ -81,6 +83,7 @@ let importPanel;
 async function boot() {
   await initI18n();
   await initTheme();
+  await restorePlaybackPreferences();
 
   const sideMenu = initSideMenu({
     onNavigate: (page) => renderPage(page),
@@ -92,7 +95,8 @@ async function boot() {
 
   const lyricsModal = initLyricsModal();
 
-  initMiniPlayer({
+  initMiniPlayer();
+  initPlayerSheet({
     onOpenLyrics: (song) => { if (song) lyricsModal.open(song); },
   });
 
@@ -104,7 +108,7 @@ async function boot() {
   // swallows offline/network failures and respects its own cache
   // interval, so this is safe to call on every page load.
   checkForUpdate().then((result) => {
-    if (result.available) showUpdateAvailable(result.info);
+    if (result.available) showUpdateAvailable(result);
   }).catch(() => {});
 }
 

@@ -94,7 +94,15 @@
     "shuffleOff": "Shuffle off",
     "favorite": "Add to favorites",
     "unfavorite": "Remove from favorites",
-    "openLyrics": "Open lyrics"
+    "openLyrics": "Open lyrics",
+    "repeatOff": "Repeat off",
+    "repeatAll": "Repeat all",
+    "repeatOne": "Repeat one",
+    "vocals": "Vocals",
+    "instrumental": "Instrumental",
+    "noInstrumental": "No instrumental version is available for this song yet.",
+    "addInstrumental": "Add instrumental version",
+    "emptyQueue": "Your queue is empty."
   },
   "lyrics": {
     "title": "Lyrics",
@@ -167,10 +175,15 @@
   },
   "update": {
     "title": "Update available",
-    "message": "A new version is ready: {{name}}. Here's what changed:",
+    "currentVersion": "Current version",
+    "latestVersion": "Latest version",
+    "releaseDate": "Release date",
     "updateNow": "Update now",
     "remindLater": "Remind me later",
-    "applying": "Updating…"
+    "stageChecking": "Checking for the update…",
+    "stageInstalling": "Installing the new version…",
+    "stageActivating": "Almost there…",
+    "stageTimeout": "This is taking longer than expected."
   },
   "sort": {
     "label": "Sort",

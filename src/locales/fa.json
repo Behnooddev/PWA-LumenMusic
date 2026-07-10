@@ -94,7 +94,15 @@
     "shuffleOff": "پخش تصادفی خاموش",
     "favorite": "افزودن به علاقه‌مندی‌ها",
     "unfavorite": "حذف از علاقه‌مندی‌ها",
-    "openLyrics": "نمایش متن ترانه"
+    "openLyrics": "نمایش متن ترانه",
+    "repeatOff": "تکرار خاموش",
+    "repeatAll": "تکرار همه",
+    "repeatOne": "تکرار یکی",
+    "vocals": "خواننده",
+    "instrumental": "بی‌کلام",
+    "noInstrumental": "هنوز نسخه‌ی بی‌کلامی برای این آهنگ موجود نیست.",
+    "addInstrumental": "افزودن نسخه‌ی بی‌کلام",
+    "emptyQueue": "صف پخش تو خالی است."
   },
   "lyrics": {
     "title": "متن ترانه",
@@ -167,10 +175,15 @@
   },
   "update": {
     "title": "به‌روزرسانی موجود است",
-    "message": "نسخه‌ی جدیدی آماده است: {{name}}. تغییرات:",
+    "currentVersion": "نسخه‌ی فعلی",
+    "latestVersion": "آخرین نسخه",
+    "releaseDate": "تاریخ انتشار",
     "updateNow": "هم‌اکنون به‌روزرسانی کن",
     "remindLater": "بعداً یادآوری کن",
-    "applying": "در حال به‌روزرسانی…"
+    "stageChecking": "در حال بررسی به‌روزرسانی…",
+    "stageInstalling": "در حال نصب نسخه‌ی جدید…",
+    "stageActivating": "تقریباً تمام شد…",
+    "stageTimeout": "این کار بیشتر از حد معمول طول کشید."
   },
   "sort": {
     "label": "مرتب‌سازی",

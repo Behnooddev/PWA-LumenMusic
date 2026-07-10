@@ -70,6 +70,7 @@ export function initLyricsModal() {
 
   async function renderView() {
     if (!activeSong) return;
+    lastActiveIdx = -1;
     const record = await Lyrics.get(activeSong.id);
     const raw = record ? record[lyricsLang] : "";
 
@@ -155,6 +156,8 @@ export function initLyricsModal() {
     playBtn.setAttribute("aria-label", isPlaying ? t("player.pause") : t("player.play"));
   });
 
+  let lastActiveIdx = -1;
+
   on("timeupdate", (currentTime) => {
     if (!modal.classList.contains("open") || editing || !currentParsed.length) return;
     const nodes = $$(".lyric-line", body);
@@ -163,6 +166,9 @@ export function initLyricsModal() {
       const time = parseFloat(n.dataset.time);
       if (!isNaN(time) && time <= currentTime) activeIdx = i;
     });
+    if (activeIdx === lastActiveIdx) return; // nothing changed — don't touch classes or scroll position
+    lastActiveIdx = activeIdx;
+
     nodes.forEach((n, i) => n.classList.toggle("current", i === activeIdx && activeIdx >= 0));
     if (activeIdx >= 0 && nodes[activeIdx]) {
       nodes[activeIdx].scrollIntoView({ block: "center", behavior: "smooth" });

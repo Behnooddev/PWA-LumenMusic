@@ -176,7 +176,13 @@ export function validatePackage(entries) {
       lyricsOk = false;
     }
 
-    validSongs.push({ metadata: meta, hasCover: coverOk, hasLyrics: lyricsOk });
+    let instrumentalOk = true;
+    if (meta.instrumental && !entries.has(meta.instrumental)) {
+      warnings.push(`"${meta.title}": instrumental file "${meta.instrumental}" not found — importing without it.`);
+      instrumentalOk = false;
+    }
+
+    validSongs.push({ metadata: meta, hasCover: coverOk, hasLyrics: lyricsOk, hasInstrumental: instrumentalOk });
   }
 
   if (!validSongs.length) {
@@ -230,7 +236,7 @@ export async function importPackage(file, onProgress) {
   let imported = 0;
 
   for (let i = 0; i < validated.songs.length; i++) {
-    const { metadata, hasCover, hasLyrics } = validated.songs[i];
+    const { metadata, hasCover, hasLyrics, hasInstrumental } = validated.songs[i];
     onProgress?.("importing", i + 1, validated.songs.length);
 
     const audioBytes = entries.get(metadata.song);
@@ -247,6 +253,14 @@ export async function importPackage(file, onProgress) {
       cover = generatePlaceholderCover(metadata.title);
     }
 
+    let instrumentalBlob = null;
+    let instrumentalMimeType = null;
+    if (hasInstrumental && metadata.instrumental && entries.has(metadata.instrumental)) {
+      const instrumentalExt = (metadata.instrumental.split(".").pop() || "mp3").toLowerCase();
+      instrumentalMimeType = guessMimeFromExtension(instrumentalExt);
+      instrumentalBlob = new Blob([entries.get(metadata.instrumental)], { type: instrumentalMimeType });
+    }
+
     const existing = await Songs.get(metadata.id);
     const finalId = existing ? generateId("song") : metadata.id;
     idMap.set(metadata.id, finalId);
@@ -261,6 +275,7 @@ export async function importPackage(file, onProgress) {
       cover,
       audioBlob,
       mimeType,
+      ...(instrumentalBlob ? { instrumentalBlob, instrumentalMimeType } : {}),
       favorite: false,
       playCount: 0,
       dateAdded: Date.now(),
@@ -478,6 +493,14 @@ export async function exportPackage(options = {}, onProgress) {
       }
     }
 
+    let instrumentalPath = null;
+    if (song.instrumentalBlob) {
+      const instrumentalExt = extensionFromMime(song.instrumentalMimeType, "audio");
+      const instrumentalBytes = new Uint8Array(await song.instrumentalBlob.arrayBuffer());
+      instrumentalPath = `songs/${song.id}-instrumental.${instrumentalExt}`;
+      zipEntries.push({ name: instrumentalPath, data: instrumentalBytes });
+    }
+
     const metadata = {
       id: song.id,
       title: song.title,
@@ -488,6 +511,7 @@ export async function exportPackage(options = {}, onProgress) {
       song: `songs/${song.id}.${audioExt}`,
       cover: coverPath,
       lyrics: lyricsPath,
+      instrumental: instrumentalPath,
       ...(includeFavorites ? { favorite: !!song.favorite } : {}),
       ...(includePlayCount ? { playCount: song.playCount || 0 } : {}),
       ...(includeMoodTags ? { moodTags: song.moodTags || [] } : {}),
